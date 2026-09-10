@@ -34,10 +34,16 @@ program
       process.exit(1)
     }
 
-    const absoluteEntry = path.resolve(entryFile)
+    let absoluteEntry = path.resolve(entryFile)
     if (!fs.existsSync(absoluteEntry)) {
-      console.error(`Error: File not found: ${entryFile}`)
-      process.exit(1)
+      const withMd = `${absoluteEntry}.md`
+      if (fs.existsSync(withMd)) {
+        absoluteEntry = withMd
+      }
+      else {
+        console.error(`Error: File not found: ${entryFile}`)
+        process.exit(1)
+      }
     }
 
     const graph = mapDependencies(absoluteEntry)

@@ -46,6 +46,7 @@ describe('renderMermaid', () => {
       + '    node0 --> node1\n'
       + '    node0 --> node2\n'
       + '\n'
+      + '    style node0 fill:#e1f5fe,stroke:#03a9f4,stroke-width:2px;\n'
       + '    style node2 fill:#ffcccc,stroke:#ff0000,stroke-width:2px;\n',
     )
   })

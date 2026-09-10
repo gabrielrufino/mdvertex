@@ -18,7 +18,7 @@ describe('mapDependencies and renderers', () => {
     // Create test files
     fs.writeFileSync(
       path.join(testDir, 'main.md'),
-      'Go to [about](about.md) and [[contact|Contact us]]. Also look at [missing](missing.md).',
+      'Go to [about](about) and [[contact|Contact us]]. Also look at [missing](missing.md).',
     )
     fs.writeFileSync(
       path.join(testDir, 'about.md'),
@@ -102,5 +102,14 @@ describe('mapDependencies and renderers', () => {
     expect(mermaidOutput).toContain('flowchart TD')
     expect(mermaidOutput).toContain('temp-test-env-specs/main.md')
     expect(mermaidOutput).toContain('fill:#ffcccc,stroke:#ff0000,stroke-width:2px')
+  })
+
+  it('should resolve entry path and links without .md extension', () => {
+    const entry = path.join(testDir, 'main')
+    const graph = mapDependencies(entry)
+
+    expect(graph.has(path.resolve(testDir, 'main.md'))).toBe(true)
+    expect(graph.has(path.resolve(testDir, 'about.md'))).toBe(true)
+    expect(graph.get(path.resolve(testDir, 'main.md'))?.exists).toBe(true)
   })
 })

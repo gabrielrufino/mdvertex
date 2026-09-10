@@ -5,7 +5,13 @@ import { parseLinks } from './parse-links'
 
 export function mapDependencies(entryPath: string): DependencyGraph {
   const graph: DependencyGraph = new Map()
-  const absoluteEntry = path.resolve(entryPath)
+  let absoluteEntry = path.resolve(entryPath)
+  if (!fs.existsSync(absoluteEntry)) {
+    const withMd = `${absoluteEntry}.md`
+    if (fs.existsSync(withMd)) {
+      absoluteEntry = withMd
+    }
+  }
 
   function traverse(currentPath: string) {
     if (graph.has(currentPath)) {
@@ -21,7 +27,16 @@ export function mapDependencies(entryPath: string): DependencyGraph {
         const rawLinks = parseLinks(content)
         const currentDir = path.dirname(currentPath)
 
-        references = rawLinks.map(link => path.resolve(currentDir, link))
+        references = rawLinks.map((link) => {
+          const resolved = path.resolve(currentDir, link)
+          if (!fs.existsSync(resolved)) {
+            const withMd = `${resolved}.md`
+            if (fs.existsSync(withMd)) {
+              return withMd
+            }
+          }
+          return resolved
+        })
       }
       catch {}
     }
