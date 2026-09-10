@@ -1,4 +1,4 @@
-export function extractLinks(content: string): string[] {
+export function parseLinks(content: string): string[] {
   const standardLinkRegex = /\[.*?\]\((?!https?:\/\/)([^)]+)\)/g
   const wikiLinkRegex = /\[\[(?!https?:\/\/)([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]*)?\]\]/g
   const links: string[] = []

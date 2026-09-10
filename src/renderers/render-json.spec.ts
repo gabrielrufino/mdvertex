@@ -1,7 +1,7 @@
 import type { DependencyGraph } from '../types'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { renderJson } from './json'
+import { renderJson } from './render-json'
 
 describe('renderJson', () => {
   it('should render correct JSON representation with relative paths', () => {

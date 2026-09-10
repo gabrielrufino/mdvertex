@@ -3,8 +3,8 @@ import path from 'node:path'
 import process from 'node:process'
 import { pathToFileURL } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-import { mapDependencies } from './mapper'
-import { renderJson, renderMermaid, renderTree } from './renderers'
+import { renderJson, renderMermaid, renderTree } from '../renderers'
+import { mapDependencies } from './map-dependencies'
 
 describe('mapDependencies and renderers', () => {
   const testDir = path.resolve(process.cwd(), 'temp-test-env-specs')

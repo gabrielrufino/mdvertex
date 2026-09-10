@@ -1,3 +1,3 @@
-export { renderJson } from './json'
-export { renderMermaid } from './mermaid'
-export { renderTree } from './tree'
+export { renderJson } from './render-json'
+export { renderMermaid } from './render-mermaid'
+export { renderTree } from './render-tree'

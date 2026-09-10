@@ -1,7 +1,7 @@
-import type { DependencyGraph } from './types'
+import type { DependencyGraph } from '../types'
 import fs from 'node:fs'
 import path from 'node:path'
-import { extractLinks } from './parser'
+import { parseLinks } from './parse-links'
 
 export function mapDependencies(entryPath: string): DependencyGraph {
   const graph: DependencyGraph = new Map()
@@ -18,7 +18,7 @@ export function mapDependencies(entryPath: string): DependencyGraph {
     if (exists) {
       try {
         const content = fs.readFileSync(currentPath, 'utf8')
-        const rawLinks = extractLinks(content)
+        const rawLinks = parseLinks(content)
         const currentDir = path.dirname(currentPath)
 
         references = rawLinks.map(link => path.resolve(currentDir, link))

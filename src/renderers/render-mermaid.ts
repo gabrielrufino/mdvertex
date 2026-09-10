@@ -1,5 +1,5 @@
 import type { DependencyGraph } from '../types'
-import { getRelativePath } from './utils'
+import { getRelativePath } from '../utils'
 
 export function renderMermaid(entryPath: string, graph: DependencyGraph): string {
   let output = 'flowchart TD\n'

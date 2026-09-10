@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { extractLinks } from './parser'
+import { parseLinks } from './parse-links'
 
-describe('extractLinks', () => {
+describe('parseLinks', () => {
   it('should extract standard markdown links and ignore external links', () => {
     const content = `
       This is a [link](about.md).
@@ -11,7 +11,7 @@ describe('extractLinks', () => {
       This is a hash-only link [hash](#section).
       This is an empty link [empty]().
     `
-    const result = extractLinks(content)
+    const result = parseLinks(content)
     expect(result).toEqual(['about.md', 'contact.md'])
   })
 
@@ -32,7 +32,7 @@ describe('extractLinks', () => {
       Check [[http://example.com|Insecure Wiki]].
       Check [[https://example.com|Secure Wiki]].
     `
-    const result = extractLinks(content)
+    const result = parseLinks(content)
     expect(result).toEqual([
       'about.md',
       'contact.md',

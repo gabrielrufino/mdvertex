@@ -1,6 +1,6 @@
 import type { DependencyGraph } from '../types'
 import path from 'node:path'
-import { getRelativePath } from './utils'
+import { getRelativePath } from '../utils'
 
 export function renderJson(entryPath: string, graph: DependencyGraph): string {
   const absoluteEntry = path.resolve(entryPath)

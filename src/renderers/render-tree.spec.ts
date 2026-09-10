@@ -2,7 +2,7 @@ import type { DependencyGraph } from '../types'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { renderTree } from './tree'
+import { renderTree } from './render-tree'
 
 describe('renderTree', () => {
   it('should render correct tree representation of the graph', () => {

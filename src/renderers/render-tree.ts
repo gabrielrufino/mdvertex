@@ -1,6 +1,6 @@
 import type { DependencyGraph } from '../types'
 import path from 'node:path'
-import { createHyperlink, getRelativePath } from './utils'
+import { createHyperlink, getRelativePath } from '../utils'
 
 export function renderTree(entryPath: string, graph: DependencyGraph): string {
   const absoluteEntry = path.resolve(entryPath)

@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { Command } from 'commander'
-import { mapDependencies } from './mapper'
+import { mapDependencies } from './core'
 import { renderJson, renderMermaid, renderTree } from './renderers'
 
 const program = new Command()

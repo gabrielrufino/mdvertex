@@ -1,7 +1,7 @@
 import type { DependencyGraph } from '../types'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { renderMermaid } from './mermaid'
+import { renderMermaid } from './render-mermaid'
 
 describe('renderMermaid', () => {
   it('should render correct Mermaid flowchart representation', () => {
