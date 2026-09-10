@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { mapDependencies } from './mapper'
 import { extractLinks } from './parser'
@@ -85,10 +86,14 @@ describe('mdvertex', () => {
       const graph = mapDependencies(entry)
       const treeOutput = renderTree(entry, graph)
 
-      expect(treeOutput).toContain('temp-test-env-specs/main.md')
-      expect(treeOutput).toContain('temp-test-env-specs/about.md')
-      expect(treeOutput).toContain('temp-test-env-specs/missing.md ❌ [broken link]')
-      expect(treeOutput).toContain('temp-test-env-specs/main.md 🔄 [circular]')
+      const mainUrl = pathToFileURL(path.resolve(testDir, 'main.md')).href
+      const aboutUrl = pathToFileURL(path.resolve(testDir, 'about.md')).href
+      const missingUrl = pathToFileURL(path.resolve(testDir, 'missing.md')).href
+
+      expect(treeOutput).toContain(`\u001B]8;;${mainUrl}\u001B\\temp-test-env-specs/main.md\u001B]8;;\u001B\\`)
+      expect(treeOutput).toContain(`\u001B]8;;${aboutUrl}\u001B\\temp-test-env-specs/about.md\u001B]8;;\u001B\\`)
+      expect(treeOutput).toContain(`\u001B]8;;${missingUrl}\u001B\\temp-test-env-specs/missing.md\u001B]8;;\u001B\\ ❌ [broken link]`)
+      expect(treeOutput).toContain(`\u001B]8;;${mainUrl}\u001B\\temp-test-env-specs/main.md\u001B]8;;\u001B\\ 🔄 [circular]`)
     })
 
     it('should render correct JSON output', () => {

@@ -1,6 +1,6 @@
 import type { DependencyGraph } from '../types'
 import path from 'node:path'
-import { getRelativePath } from './utils'
+import { createHyperlink, getRelativePath } from './utils'
 
 export function renderTree(entryPath: string, graph: DependencyGraph): string {
   const absoluteEntry = path.resolve(entryPath)
@@ -23,7 +23,8 @@ export function renderTree(entryPath: string, graph: DependencyGraph): string {
       status = ' 🔄 [circular]'
     }
 
-    output += `${prefix}${connector}${relativePath}${status}\n`
+    const link = createHyperlink(relativePath, filePath)
+    output += `${prefix}${connector}${link}${status}\n`
 
     if (!node || !node.exists || visited.has(filePath)) {
       return
@@ -46,7 +47,8 @@ export function renderTree(entryPath: string, graph: DependencyGraph): string {
     return `❌ Entry file not found: ${getRelativePath(absoluteEntry)}\n`
   }
 
-  output += `📄 ${getRelativePath(absoluteEntry)}${entryNode.exists ? '' : ' ❌ [not found]'}\n`
+  const entryLink = createHyperlink(getRelativePath(absoluteEntry), absoluteEntry)
+  output += `📄 ${entryLink}${entryNode.exists ? '' : ' ❌ [not found]'}\n`
 
   if (entryNode.exists) {
     const visited = new Set<string>([absoluteEntry])

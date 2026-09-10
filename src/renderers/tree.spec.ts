@@ -1,5 +1,6 @@
 import type { DependencyGraph } from '../types'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { renderTree } from './tree'
 
@@ -37,10 +38,14 @@ describe('renderTree', () => {
     ])
 
     const result = renderTree(entry, graph)
-    expect(result).toContain('main.md')
-    expect(result).toContain('├── about.md')
-    expect(result).toContain('│   └── main.md 🔄 [circular]')
-    expect(result).toContain('└── contact.md ❌ [broken link]')
+    const entryUrl = pathToFileURL(entry).href
+    const aboutUrl = pathToFileURL(about).href
+    const contactUrl = pathToFileURL(contact).href
+
+    expect(result).toContain(`📄 \u001B]8;;${entryUrl}\u001B\\main.md\u001B]8;;\u001B\\`)
+    expect(result).toContain(`├── \u001B]8;;${aboutUrl}\u001B\\about.md\u001B]8;;\u001B\\`)
+    expect(result).toContain(`│   └── \u001B]8;;${entryUrl}\u001B\\main.md\u001B]8;;\u001B\\ 🔄 [circular]`)
+    expect(result).toContain(`└── \u001B]8;;${contactUrl}\u001B\\contact.md\u001B]8;;\u001B\\ ❌ [broken link]`)
   })
 
   it('should return an error string if entry file is not in the graph', () => {
