@@ -1,7 +1,7 @@
 {
-  "name": "@gabrielrufino/node-template",
+  "name": "mdvertex",
   "version": "1.0.0",
-  "description": "An incredible project made in Node.js",
+  "description": "Map references in Markdown files",
   "author": "Gabriel Rufino <contato@gabrielrufino.com>",
   "license": "UNLICENSED",
   "funding": [
@@ -11,8 +11,12 @@
     }
   ],
   "main": "dist/index.js",
+  "bin": {
+    "mdvertex": "./dist/cli.js"
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "tsdown src/index.ts src/cli.ts --format cjs --no-fixed-extension",
+    "build:check": "tsc --noEmit",
     "build:watch": "npm run build -- --watch",
     "lint": "eslint",
     "lint:fix": "npm run lint -- --fix",
@@ -20,6 +24,9 @@
     "test:cov": "npm test -- --coverage",
     "test:watch": "vitest",
     "prepare": "husky"
+  },
+  "dependencies": {
+    "commander": "^15.0.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^6.7.3",
@@ -29,6 +36,7 @@
     "@vitest/coverage-v8": "^4.1.2",
     "eslint": "^9.39.5",
     "husky": "^9.1.7",
+    "tsdown": "^0.23.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.2"
   }

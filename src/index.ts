@@ -1,3 +1,4 @@
-export function add(a: number, b: number) {
-  return a + b
-}
+export { mapDependencies } from './mapper'
+export { extractLinks } from './parser'
+export { renderJson, renderMermaid, renderTree } from './renderers'
+export * from './types'
