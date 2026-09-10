@@ -10,12 +10,11 @@
       "url": "https://github.com/sponsors/gabrielrufino"
     }
   ],
-  "main": "dist/index.js",
   "bin": {
-    "mdvertex": "./dist/cli.js"
+    "mdvertex": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsdown src/index.ts src/cli.ts --format cjs --no-fixed-extension",
+    "build": "tsdown src/index.ts --format cjs --no-fixed-extension",
     "build:check": "tsc --noEmit",
     "build:watch": "npm run build -- --watch",
     "lint": "eslint",

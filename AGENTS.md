@@ -22,5 +22,5 @@ Always run verification in this specific order before finishing tasks:
   ```
 
 ## 🏗️ Architecture & CLI
-- **CLI Entrypoint**: `src/cli.ts` utilizes `commander` directly at the top level and parses `process.argv` directly. Do not wrap the program parser in an unnecessary `run` function.
-- **Binary**: The binary is mapped to `./dist/cli.js` under `"bin"` in `package.json`. Make sure to keep `chmod +x dist/cli.js` when compiling.
+- **CLI Entrypoint**: `src/index.ts` utilizes `commander` directly at the top level and parses `process.argv` directly. Do not wrap the program parser in an unnecessary `run` function.
+- **Binary**: The binary is mapped to `./dist/index.js` under `"bin"` in `package.json`. Make sure to keep `chmod +x dist/index.js` when compiling.
