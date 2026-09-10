@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { pathToFileURL } from 'node:url'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { mapDependencies } from './mapper'
 import { renderJson, renderMermaid, renderTree } from './renderers'
 
@@ -36,12 +36,14 @@ describe('mapDependencies and renderers', () => {
   })
 
   afterAll(() => {
+    vi.restoreAllMocks()
     if (fs.existsSync(testDir)) {
       fs.rmSync(testDir, { recursive: true, force: true })
     }
   })
 
   it('should recursively map dependencies including circular and broken links', () => {
+    const readFileSyncSpy = vi.spyOn(fs, 'readFileSync')
     const entry = path.join(testDir, 'main.md')
     const graph = mapDependencies(entry)
 
@@ -53,7 +55,17 @@ describe('mapDependencies and renderers', () => {
 
     expect(graph.get(path.resolve(testDir, 'main.md'))?.exists).toBe(true)
     expect(graph.get(path.resolve(testDir, 'missing.md'))?.exists).toBe(false)
-    expect(graph.get(path.resolve(testDir, 'main.md'))?.references).toContain(path.resolve(testDir, 'about.md'))
+    expect(graph.get(path.resolve(testDir, 'missing.md'))?.references).toEqual([])
+    expect(graph.get(path.resolve(testDir, 'main.md'))?.references).toEqual([
+      path.resolve(testDir, 'about.md'),
+      path.resolve(testDir, 'missing.md'),
+      path.resolve(testDir, 'contact.md'),
+    ])
+
+    // Ensure fs.readFileSync is NOT called for the non-existing file (missing.md)
+    const missingPath = path.resolve(testDir, 'missing.md')
+    const calledWithMissing = readFileSyncSpy.mock.calls.some(call => path.resolve(call[0] as string) === missingPath)
+    expect(calledWithMissing).toBe(false)
   })
 
   it('should render correct Tree output', () => {

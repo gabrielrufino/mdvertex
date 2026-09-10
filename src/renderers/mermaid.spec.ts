@@ -37,10 +37,16 @@ describe('renderMermaid', () => {
     ])
 
     const result = renderMermaid(entry, graph)
-    expect(result).toContain('flowchart TD')
-    expect(result).toContain('main.md')
-    expect(result).toContain('about.md')
-    expect(result).toContain('missing.md')
-    expect(result).toContain('style node2 fill:#ffcccc,stroke:#ff0000,stroke-width:2px;')
+    expect(result).toBe(
+      'flowchart TD\n'
+      + '    node0["main.md"]\n'
+      + '    node1["about.md"]\n'
+      + '    node2["missing.md"]\n'
+      + '\n'
+      + '    node0 --> node1\n'
+      + '    node0 --> node2\n'
+      + '\n'
+      + '    style node2 fill:#ffcccc,stroke:#ff0000,stroke-width:2px;\n',
+    )
   })
 })
