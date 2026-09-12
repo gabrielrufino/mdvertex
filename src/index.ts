@@ -7,13 +7,17 @@ import { Command } from 'commander'
 import { mapDependencies } from './core'
 import { renderJson, renderMermaid, renderTree } from './renderers'
 
+declare const __VERSION__: string | undefined
+
 const program = new Command()
 
-let version = '1.0.0'
+let version = typeof __VERSION__ !== 'undefined' ? __VERSION__ : '1.0.0'
 try {
   const pkgPath = path.resolve(__dirname, '../package.json')
-  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'))
-  version = pkg.version
+  if (fs.existsSync(pkgPath)) {
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'))
+    version = pkg.version
+  }
 }
 catch {
   // Fail-safe default
