@@ -16,6 +16,16 @@ if (-not $nodeCmd) {
     exit 1
 }
 
+$nodeVersionString = & node --version
+if ($nodeVersionString -match 'v(\d+)\.') {
+    $majorVersion = [int]$matches[1]
+    if ($majorVersion -lt 18) {
+        Write-Host "❌ Error: Node.js v18 or higher is required. Found $nodeVersionString." -ForegroundColor Red
+        Write-Host "Please update Node.js from https://nodejs.org/" -ForegroundColor Yellow
+        exit 1
+    }
+}
+
 # Ensure directory structure exists
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
 New-Item -ItemType Directory -Force -Path $binDir | Out-Null

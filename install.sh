@@ -16,6 +16,13 @@ if ! command -v node >/dev/null 2>&1; then
   exit 1
 fi
 
+NODE_VERSION=$(node --version | grep -oE '^v[0-9]+' | sed 's/^v//')
+if [ "$NODE_VERSION" -lt 18 ]; then
+  echo "❌ Error: Node.js v18 or higher is required. Found v$(node --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')." >&2
+  echo "Please update Node.js and try again: https://nodejs.org/" >&2
+  exit 1
+fi
+
 # Ensure target directories exist
 mkdir -p "$INSTALL_DIR"
 mkdir -p "$BIN_DIR"
