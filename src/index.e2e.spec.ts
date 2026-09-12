@@ -55,6 +55,7 @@ describe('cli e2e', () => {
     const testPort = 4200 + Math.floor(Math.random() * 300)
     const proc = spawn('node', [binPath, entryFile, '--no-open', '--port', String(testPort)], {
       stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, CONSOLA_LEVEL: '3' },
     })
 
     const startedPromise = new Promise<string>((resolve, reject) => {

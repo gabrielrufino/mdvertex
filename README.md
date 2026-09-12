@@ -31,22 +31,62 @@ A powerful CLI and library to map, visualize, and audit references and links wit
 
 ---
 
-## Installation & Updates
+## Installation
 
 ### Linux & macOS
 
-Install or update to the latest version using `curl`:
+Install using `curl`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/gabrielrufino/mdvertex/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/gabrielrufino/mdvertex/main/scripts/install.sh | bash
 ```
 
 ### Windows
 
-Install or update to the latest version via PowerShell:
+Install via PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/gabrielrufino/mdvertex/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/gabrielrufino/mdvertex/main/scripts/install.ps1 | iex
+```
+
+---
+
+## Update
+
+### Linux & macOS
+
+Update to the latest version using `curl`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/gabrielrufino/mdvertex/main/scripts/update.sh | bash
+```
+
+### Windows
+
+Update to the latest version via PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/gabrielrufino/mdvertex/main/scripts/update.ps1 | iex
+```
+
+---
+
+## Uninstall
+
+### Linux & macOS
+
+Uninstall mdvertex using `curl`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/gabrielrufino/mdvertex/main/scripts/uninstall.sh | bash
+```
+
+### Windows
+
+Uninstall via PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/gabrielrufino/mdvertex/main/scripts/uninstall.ps1 | iex
 ```
 
 ---

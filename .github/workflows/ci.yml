@@ -16,6 +16,60 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actalog/node-ci@v3
 
+  test-scripts-linux:
+    name: Test Scripts (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Test install, update and uninstall scripts
+        run: |
+          export MDVERTEX_INSTALL_DIR="$RUNNER_TEMP/mdvertex-install"
+          export MDVERTEX_BIN_DIR="$RUNNER_TEMP/mdvertex-bin"
+
+          # 1. Test install
+          bash scripts/install.sh
+          "$MDVERTEX_BIN_DIR/mdvertex" --version
+
+          # 2. Test update
+          bash scripts/update.sh
+          "$MDVERTEX_BIN_DIR/mdvertex" --version
+
+          # 3. Test uninstall
+          bash scripts/uninstall.sh
+          [ ! -f "$MDVERTEX_BIN_DIR/mdvertex" ]
+          [ ! -d "$MDVERTEX_INSTALL_DIR" ]
+
+  test-scripts-windows:
+    name: Test Scripts (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Test install, update and uninstall scripts
+        shell: pwsh
+        run: |
+          $env:MDVERTEX_INSTALL_DIR = "$env:RUNNER_TEMP\mdvertex-install"
+          $env:MDVERTEX_BIN_DIR = "$env:RUNNER_TEMP\mdvertex-bin"
+
+          # 1. Test install
+          & ./scripts/install.ps1
+          & "$env:MDVERTEX_BIN_DIR\mdvertex.cmd" --version
+
+          # 2. Test update
+          & ./scripts/update.ps1
+          & "$env:MDVERTEX_BIN_DIR\mdvertex.cmd" --version
+
+          # 3. Test uninstall
+          & ./scripts/uninstall.ps1
+          if (Test-Path "$env:MDVERTEX_INSTALL_DIR") {
+            throw "Install directory was not removed"
+          }
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.sha }}
   cancel-in-progress: true

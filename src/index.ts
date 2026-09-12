@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { Command } from 'commander'
+import { consola } from 'consola'
 import { mapDependencies } from './core'
 import { renderJson, renderMermaid, renderTree } from './renderers'
 import { startServer } from './server'
@@ -38,7 +38,7 @@ program
     const format = options.format
 
     if (format !== 'browser' && format !== 'tree' && format !== 'json' && format !== 'mermaid') {
-      console.error(`Error: Invalid format "${format}". Supported formats: browser, tree, json, mermaid`)
+      consola.error(`Invalid format "${format}". Supported formats: browser, tree, json, mermaid`)
       process.exit(1)
     }
 
@@ -49,7 +49,7 @@ program
         absoluteEntry = withMd
       }
       else {
-        console.error(`Error: File not found: ${entryFile}`)
+        consola.error(`File not found: ${entryFile}`)
         process.exit(1)
       }
     }
@@ -63,9 +63,10 @@ program
         open: options.open,
       })
 
-      console.log(`\n📐 mdvertex v${version}`)
-      console.log(`➜  Local:    ${url}`)
-      console.log(`➜  Watching: ${getRelativePath(absoluteEntry)} and referenced files...\n`)
+      consola.ready({
+        message: `mdvertex v${version}\nLocal:    ${url}\nWatching: ${getRelativePath(absoluteEntry)} and referenced files...`,
+        badge: true,
+      })
       return
     }
 
@@ -82,10 +83,10 @@ program
       output = renderMermaid(absoluteEntry, graph)
     }
 
-    console.log(output.trimEnd())
+    process.stdout.write(`${output.trimEnd()}\n`)
   })
 
 program.parseAsync(process.argv).catch((err) => {
-  console.error(err)
+  consola.error(err)
   process.exit(1)
 })

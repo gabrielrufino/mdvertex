@@ -28,7 +28,8 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "commander": "^15.0.0"
+    "commander": "^15.0.0",
+    "consola": "^3.4.2"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^6.7.3",

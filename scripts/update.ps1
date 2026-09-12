@@ -1,4 +1,4 @@
-# install.ps1 - Installer / Updater script for mdvertex on Windows
+# update.ps1 - Updater script for mdvertex on Windows
 $ErrorActionPreference = "Stop"
 
 $repo = "gabrielrufino/mdvertex"
@@ -6,7 +6,7 @@ $installDir = if ($env:MDVERTEX_INSTALL_DIR) { $env:MDVERTEX_INSTALL_DIR } else 
 $binDir = if ($env:MDVERTEX_BIN_DIR) { $env:MDVERTEX_BIN_DIR } else { Join-Path $installDir "bin" }
 $targetScript = Join-Path $installDir "mdvertex.js"
 
-Write-Host "📐 Installing / Updating mdvertex..." -ForegroundColor Cyan
+Write-Host "🔄 Updating mdvertex..." -ForegroundColor Cyan
 
 # Check for Node.js
 $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
@@ -66,5 +66,4 @@ if ($userPath -split ";" -notcontains $binDir) {
     Write-Host "ℹ️  Added $binDir to user PATH." -ForegroundColor Gray
 }
 
-Write-Host "✅ mdvertex was installed/updated successfully!" -ForegroundColor Green
-Write-Host "Run 'mdvertex --help' to get started." -ForegroundColor Cyan
+Write-Host "✅ mdvertex was updated successfully!" -ForegroundColor Green
