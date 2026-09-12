@@ -1,34 +1,46 @@
 {
-  "name": "@gabrielrufino/node-template",
-  "version": "1.0.0",
-  "description": "An incredible project made in Node.js",
+  "name": "mdvertex",
+  "type": "module",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Map references in Markdown files",
   "author": "Gabriel Rufino <contato@gabrielrufino.com>",
-  "license": "UNLICENSED",
+  "license": "Unlicense",
   "funding": [
     {
       "type": "github",
       "url": "https://github.com/sponsors/gabrielrufino"
     }
   ],
-  "main": "dist/index.js",
+  "bin": {
+    "mdvertex": "./dist/index.js"
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "tsdown",
+    "build:check": "tsc --noEmit",
     "build:watch": "npm run build -- --watch",
     "lint": "eslint",
     "lint:fix": "npm run lint -- --fix",
     "test": "vitest run",
     "test:cov": "npm test -- --coverage",
+    "test:mutation": "stryker run",
     "test:watch": "vitest",
     "prepare": "husky"
+  },
+  "dependencies": {
+    "commander": "^15.0.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^6.7.3",
     "@commitlint/cli": "^20.5.3",
     "@commitlint/config-conventional": "^20.5.3",
     "@faker-js/faker": "^10.5.0",
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
     "@vitest/coverage-v8": "^4.1.2",
     "eslint": "^9.39.5",
     "husky": "^9.1.7",
+    "tsdown": "^0.23.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.2"
   }

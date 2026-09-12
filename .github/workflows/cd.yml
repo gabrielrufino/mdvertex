@@ -1,21 +1,55 @@
 name: CD
 
 on:
-  workflow_run:
-    workflows: [CI]
-    types:
-      - completed
-    branches:
-      - main
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [published]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  delivery:
-    name: Delivery
-    runs-on: ubuntu-slim
+  build-and-release:
+    name: Build and Release Asset
+    runs-on: ubuntu-latest
+
     steps:
-      - uses: actalog/check-ci@main
-      - uses: actions/checkout@v5
-      - run: echo "Your delivery here"
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Build standalone bundle
+        run: npm run build
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Prepare release assets
+        run: |
+          cp dist/index.js mdvertex
+          chmod +x mdvertex
+
+      - name: Upload binaries to Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
+        with:
+          files: |
+            mdvertex
+            dist/index.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
