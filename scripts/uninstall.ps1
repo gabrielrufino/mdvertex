@@ -3,10 +3,24 @@ $ErrorActionPreference = "Stop"
 
 $installDir = if ($env:MDVERTEX_INSTALL_DIR) { $env:MDVERTEX_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "mdvertex" }
 $binDir = if ($env:MDVERTEX_BIN_DIR) { $env:MDVERTEX_BIN_DIR } else { Join-Path $installDir "bin" }
+$cmdWrapper = Join-Path $binDir "mdvertex.cmd"
+$psWrapper = Join-Path $binDir "mdvertex.ps1"
 
 Write-Host "🗑️  Uninstalling mdvertex..." -ForegroundColor Cyan
 
 $removed = $false
+
+if (Test-Path $cmdWrapper) {
+    Remove-Item -Path $cmdWrapper -Force
+    Write-Host "🗑️  Removed CMD wrapper: $cmdWrapper" -ForegroundColor Gray
+    $removed = $true
+}
+
+if (Test-Path $psWrapper) {
+    Remove-Item -Path $psWrapper -Force
+    Write-Host "🗑️  Removed PowerShell wrapper: $psWrapper" -ForegroundColor Gray
+    $removed = $true
+}
 
 if (Test-Path $installDir) {
     Remove-Item -Path $installDir -Recurse -Force
