@@ -1,7 +1,7 @@
 {
   "name": "mdvertex",
   "type": "module",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "Map references in Markdown files",
   "author": "Gabriel Rufino <contato@gabrielrufino.com>",
