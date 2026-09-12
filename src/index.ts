@@ -6,6 +6,8 @@ import process from 'node:process'
 import { Command } from 'commander'
 import { mapDependencies } from './core'
 import { renderJson, renderMermaid, renderTree } from './renderers'
+import { startServer } from './server'
+import { getRelativePath } from './utils'
 
 declare const __VERSION__: string | undefined
 
@@ -29,12 +31,14 @@ program
   .version(version, '-v, --version', 'output the version number')
   .helpOption('-h, --help', 'display help for command')
   .argument('<entry-file>', 'path to the entry Markdown file')
-  .option('-f, --format <format>', 'output format: tree, json, mermaid', 'tree')
-  .action((entryFile, options) => {
+  .option('-f, --format <format>', 'output format: browser, tree, json, mermaid', 'browser')
+  .option('-p, --port <number>', 'server port (for browser format)', '3000')
+  .option('--no-open', 'do not open browser automatically')
+  .action(async (entryFile, options) => {
     const format = options.format
 
-    if (format !== 'tree' && format !== 'json' && format !== 'mermaid') {
-      console.error(`Error: Invalid format "${format}". Supported formats: tree, json, mermaid`)
+    if (format !== 'browser' && format !== 'tree' && format !== 'json' && format !== 'mermaid') {
+      console.error(`Error: Invalid format "${format}". Supported formats: browser, tree, json, mermaid`)
       process.exit(1)
     }
 
@@ -48,6 +52,21 @@ program
         console.error(`Error: File not found: ${entryFile}`)
         process.exit(1)
       }
+    }
+
+    if (format === 'browser') {
+      const parsedPort = Number(options.port)
+      const port = Number.isNaN(parsedPort) ? 3000 : parsedPort
+      const { url } = await startServer({
+        entryPath: absoluteEntry,
+        port,
+        open: options.open,
+      })
+
+      console.log(`\n📐 mdvertex v${version}`)
+      console.log(`➜  Local:    ${url}`)
+      console.log(`➜  Watching: ${getRelativePath(absoluteEntry)} and referenced files...\n`)
+      return
     }
 
     const graph = mapDependencies(absoluteEntry)
@@ -66,4 +85,7 @@ program
     console.log(output.trimEnd())
   })
 
-program.parse(process.argv)
+program.parseAsync(process.argv).catch((err) => {
+  console.error(err)
+  process.exit(1)
+})

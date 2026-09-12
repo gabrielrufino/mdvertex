@@ -8,6 +8,12 @@ A powerful CLI and library to map, visualize, and audit references and links wit
 
 ## Features
 
+- 🌐 **Interactive Browser Live Preview (`browser` - Default)**:
+  - Visualizes your dependency graph with Mermaid.js directly in your browser.
+  - **Live Reload**: Automatically monitors Markdown files and syncs updates in real time via Server-Sent Events (SSE) without page reloads.
+  - **Click-to-Open**: Click any node in the browser to instantly open the corresponding file in VS Code or your default editor.
+  - **Pan & Zoom**: Smooth navigation across large graphs with mouse drag and zoom controls.
+  - **Theme Toggle**: Switch between dark and light themes.
 - 🔍 **Multi-format Link Parsing**: Supports standard Markdown links `[label](path.md)` and Wiki-style links `[[WikiLink]]` (stripping anchors like `#section` and display names like `|label`).
 - 📂 **Auto-Resolution**: Seamlessly resolves links with or without the `.md` extension.
 - 🌳 **Interactive Terminal Tree (`tree`)**:
@@ -57,7 +63,9 @@ mdvertex <entry-file> [options]
 
 ### Options
 
-- `-f, --format <format>`: Output format. Supported formats: `tree`, `json`, `mermaid` (default: `tree`).
+- `-f, --format <format>`: Output format. Supported formats: `browser`, `tree`, `json`, `mermaid` (default: `browser`).
+- `-p, --port <number>`: Server port for browser preview (default: `3000`).
+- `--no-open`: Do not open the browser automatically.
 - `-v, --version`: Output the version number.
 - `-h, --help`: Display help for the command.
 
@@ -65,9 +73,24 @@ mdvertex <entry-file> [options]
 
 ## Output Examples
 
-### 1. Interactive Tree Format (`--format tree`)
+### 1. Interactive Browser Live Preview (`--format browser` / Default)
 
-Displays a hierarchical diagram of dependencies with ANSI hyperlinks (which can be clicked in modern terminals like VS Code, iTerm2, Alacritty, etc. to open the file directly).
+Starts a local server, opens your browser, and watches for file changes:
+
+```bash
+$ mdvertex docs/intro.md
+
+📐 mdvertex v1.1.1
+➜  Local:    http://localhost:3000
+➜  Watching: docs/intro.md and referenced files...
+```
+
+- **Click any node** to open the file in your editor (`code`, `$EDITOR`, or default app).
+- Edit any markdown file in your editor and watch the diagram **update live** in your browser.
+
+### 2. Interactive Tree Format (`--format tree`)
+
+Displays a hierarchical diagram of dependencies with ANSI hyperlinks:
 
 ```bash
 $ mdvertex docs/intro.md --format tree
@@ -80,9 +103,9 @@ $ mdvertex docs/intro.md --format tree
 └── docs/faq.md
 ```
 
-### 2. Mermaid Format (`--format mermaid`)
+### 3. Mermaid Format (`--format mermaid`)
 
-Generates a flowchart representing the references, visually highlighting the entry file and broken links.
+Generates a flowchart representing the references, visually highlighting the entry file and broken links:
 
 ```bash
 $ mdvertex docs/intro.md --format mermaid
@@ -105,7 +128,7 @@ flowchart TD
     style node0 fill:#e1f5fe,stroke:#03a9f4,stroke-width:2px;
 ```
 
-### 3. JSON Format (`--format json`)
+### 4. JSON Format (`--format json`)
 
 Outputs a structured representation of the resolved dependency graph:
 

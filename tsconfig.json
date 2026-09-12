@@ -12,6 +12,8 @@
 
     /* Language and Environment */
     "target": "es2016", /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
+    "module": "esnext",
+
     // "lib": [],                                        /* Specify a set of bundled library declaration files that describe the target runtime environment. */
     // "jsx": "preserve",                                /* Specify what JSX code is generated. */
     // "experimentalDecorators": true,                   /* Enable experimental support for legacy experimental decorators. */
@@ -24,9 +26,7 @@
     // "useDefineForClassFields": true,                  /* Emit ECMAScript-standard-compliant class fields. */
     // "moduleDetection": "auto",                        /* Control what method is used to detect module-format JS files. */
 
-    /* Modules */
-    "module": "commonjs", /* Specify what module code is generated. */
-
+    "moduleResolution": "bundler",
     /* Type Checking */
     "strict": true, /* Enable all strict type-checking options. */
     // "rootDir": "./",                                  /* Specify the root folder within your source files. */
