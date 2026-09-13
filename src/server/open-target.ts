@@ -13,18 +13,33 @@ export function getBrowserTarget(url: string, platform = process.platform): { co
   return { command: 'xdg-open', args: [url] }
 }
 
+export function parseCommand(commandStr: string): string[] {
+  const matches = commandStr.match(/(?:[^\s"']|"[^"]*"|'[^']*')+/g)
+  if (!matches) {
+    return []
+  }
+  return matches.map((arg) => {
+    if ((arg.startsWith('"') && arg.endsWith('"')) || (arg.startsWith('\'') && arg.endsWith('\''))) {
+      return arg.slice(1, -1)
+    }
+    return arg
+  })
+}
+
 export function getEditorTarget(filePath: string, env = process.env, platform = process.platform): { command: string, args: string[] } {
   const customEditor = env.VISUAL || env.EDITOR
   if (customEditor) {
-    const parts = customEditor.trim().split(/\s+/)
-    return { command: parts[0], args: [...parts.slice(1), filePath] }
+    const parts = parseCommand(customEditor.trim())
+    if (parts.length > 0) {
+      return { command: parts[0], args: [...parts.slice(1), filePath] }
+    }
   }
 
   if (platform === 'darwin') {
     return { command: 'open', args: [filePath] }
   }
   if (platform === 'win32') {
-    return { command: 'cmd', args: ['/c', 'start', '', filePath] }
+    return { command: 'explorer.exe', args: [filePath] }
   }
   return { command: 'xdg-open', args: [filePath] }
 }

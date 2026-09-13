@@ -59,15 +59,23 @@ jobs:
           # 1. Test install
           & ./scripts/install.ps1
           & "$env:MDVERTEX_BIN_DIR\mdvertex.cmd" --version
+          & "$env:MDVERTEX_BIN_DIR\mdvertex.ps1" --version
 
           # 2. Test update
           & ./scripts/update.ps1
           & "$env:MDVERTEX_BIN_DIR\mdvertex.cmd" --version
+          & "$env:MDVERTEX_BIN_DIR\mdvertex.ps1" --version
 
           # 3. Test uninstall
           & ./scripts/uninstall.ps1
           if (Test-Path "$env:MDVERTEX_INSTALL_DIR") {
             throw "Install directory was not removed"
+          }
+          if (Test-Path "$env:MDVERTEX_BIN_DIR\mdvertex.cmd") {
+            throw "mdvertex.cmd wrapper was not removed"
+          }
+          if (Test-Path "$env:MDVERTEX_BIN_DIR\mdvertex.ps1") {
+            throw "mdvertex.ps1 wrapper was not removed"
           }
 
 concurrency:

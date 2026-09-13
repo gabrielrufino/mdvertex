@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process'
 import { EventEmitter } from 'node:events'
 import process from 'node:process'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { defaultRunner, getBrowserTarget, getEditorTarget, openBrowser, openEditor } from './open-target'
+import { defaultRunner, getBrowserTarget, getEditorTarget, openBrowser, openEditor, parseCommand } from './open-target'
 
 vi.mock('node:child_process', () => ({
   spawn: vi.fn(),
@@ -36,6 +36,20 @@ describe('open-target', () => {
     })
   })
 
+  describe('parseCommand', () => {
+    it('should correctly parse unquoted and quoted arguments', () => {
+      expect(parseCommand('code --wait')).toEqual(['code', '--wait'])
+      expect(parseCommand('"C:\\Program Files\\Editor\\editor.exe" --wait')).toEqual([
+        'C:\\Program Files\\Editor\\editor.exe',
+        '--wait',
+      ])
+      expect(parseCommand('\'/Applications/Custom Editor.app\' -w')).toEqual([
+        '/Applications/Custom Editor.app',
+        '-w',
+      ])
+    })
+  })
+
   describe('getEditorTarget', () => {
     it('should prioritize VISUAL or EDITOR environment variable when present', () => {
       expect(getEditorTarget('/path/file.md', { VISUAL: 'subl -w' }, 'linux')).toEqual({
@@ -45,6 +59,14 @@ describe('open-target', () => {
       expect(getEditorTarget('/path/file.md', { EDITOR: 'vim' }, 'linux')).toEqual({
         command: 'vim',
         args: ['/path/file.md'],
+      })
+    })
+
+    it('should handle quoted executable paths with spaces in custom editor string', () => {
+      const target = getEditorTarget('/path/file.md', { EDITOR: '"C:\\Program Files\\VS Code\\Code.exe" --wait' }, 'win32')
+      expect(target).toEqual({
+        command: 'C:\\Program Files\\VS Code\\Code.exe',
+        args: ['--wait', '/path/file.md'],
       })
     })
 
@@ -62,12 +84,21 @@ describe('open-target', () => {
         args: ['/path/file.md'],
       })
       expect(getEditorTarget('C:\\path\\file.md', {}, 'win32')).toEqual({
-        command: 'cmd',
-        args: ['/c', 'start', '', 'C:\\path\\file.md'],
+        command: 'explorer.exe',
+        args: ['C:\\path\\file.md'],
       })
       expect(getEditorTarget('/path/file.md', {}, 'linux')).toEqual({
         command: 'xdg-open',
         args: ['/path/file.md'],
+      })
+    })
+
+    it('should return explorer.exe with literal arguments for paths containing shell metacharacters on Windows', () => {
+      const pathWithMetachars = 'C:\\path\\&calc.exe.md'
+      const target = getEditorTarget(pathWithMetachars, {}, 'win32')
+      expect(target).toEqual({
+        command: 'explorer.exe',
+        args: [pathWithMetachars],
       })
     })
 

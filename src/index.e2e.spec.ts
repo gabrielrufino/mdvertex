@@ -118,9 +118,11 @@ describe('cli e2e', () => {
       })
 
       const output = await Promise.race([startedPromise, timeoutPromise])
-      expect(output).toContain(`http://localhost:${testPort}`)
+      const urlMatch = output.match(/http:\/\/(?:localhost|127\.0\.0\.1):\d+/)
+      const serverUrl = urlMatch ? urlMatch[0] : `http://localhost:${testPort}`
+      expect(output).toContain(serverUrl)
 
-      const res = await fetch(`http://localhost:${testPort}/api/graph`)
+      const res = await fetch(`${serverUrl}/api/graph`)
       expect(res.status).toBe(200)
       const json = await res.json()
       expect(json.relativeEntry).toBe(getRelativePath(entryFile))

@@ -49,13 +49,18 @@ Move-Item -Path $tempFile -Destination $targetScript -Force
 
 # Create CMD wrapper
 $cmdWrapper = Join-Path $binDir "mdvertex.cmd"
-$cmdContent = "@ECHO off`r`nnode `"$targetScript`" %*"
+if ($binDir -eq (Join-Path $installDir "bin")) {
+    $cmdContent = "@ECHO off`r`nnode `"%~dp0..\mdvertex.js`" %*"
+}
+else {
+    $cmdContent = "@ECHO off`r`nnode `"$targetScript`" %*"
+}
 Set-Content -Path $cmdWrapper -Value $cmdContent -Encoding ASCII
 
 # Create PowerShell wrapper
 $psWrapper = Join-Path $binDir "mdvertex.ps1"
 $psContent = "& node `"$targetScript`" `$args"
-Set-Content -Path $psWrapper -Value $psContent -Encoding ASCII
+[System.IO.File]::WriteAllText($psWrapper, $psContent, [System.Text.Encoding]::UTF8)
 
 # Check and update PATH
 $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
