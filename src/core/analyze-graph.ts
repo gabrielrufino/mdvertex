@@ -16,6 +16,10 @@ export function analyzeGraph(graph: DependencyGraph, vaultFiles?: Set<string>): 
       continue
     }
 
+    for (const target of node.references) {
+      inDegrees.set(target, (inDegrees.get(target) ?? 0) + 1)
+    }
+
     const links = node.links ?? []
     totalLinks += links.length
 
@@ -24,7 +28,6 @@ export function analyzeGraph(graph: DependencyGraph, vaultFiles?: Set<string>): 
         continue
       }
 
-      inDegrees.set(link.resolvedPath, (inDegrees.get(link.resolvedPath) ?? 0) + 1)
       const targetNode = graph.get(link.resolvedPath)
 
       if (!targetNode || !targetNode.exists) {

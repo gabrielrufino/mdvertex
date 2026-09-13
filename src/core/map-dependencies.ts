@@ -13,9 +13,10 @@ export function mapDependencies(
   const graph: DependencyGraph = new Map()
   let absoluteEntry = path.resolve(entryPath)
   if (!fs.existsSync(absoluteEntry)) {
-    const withMd = `${absoluteEntry}.md`
-    if (fs.existsSync(withMd)) {
-      absoluteEntry = withMd
+    const fallback = [`${absoluteEntry}.md`, `${absoluteEntry}.markdown`]
+      .find(candidate => fs.existsSync(candidate))
+    if (fallback) {
+      absoluteEntry = fallback
     }
   }
 
@@ -24,7 +25,8 @@ export function mapDependencies(
   const maxDepth = options.maxDepth ?? Number.POSITIVE_INFINITY
 
   function traverse(currentPath: string, currentDepth: number) {
-    if (graph.has(currentPath) || currentDepth > maxDepth || isExcluded(currentPath, rootDir, excludes)) {
+    const isEntry = currentPath === absoluteEntry
+    if (graph.has(currentPath) || currentDepth > maxDepth || (!isEntry && isExcluded(currentPath, rootDir, excludes))) {
       return
     }
 
@@ -44,9 +46,10 @@ export function mapDependencies(
             const resolved = path.resolve(currentDir, link.target)
             resolvedPath = resolved
             if (!fs.existsSync(resolved)) {
-              const withMd = `${resolved}.md`
-              if (fs.existsSync(withMd)) {
-                resolvedPath = withMd
+              const fallback = [`${resolved}.md`, `${resolved}.markdown`]
+                .find(candidate => fs.existsSync(candidate))
+              if (fallback) {
+                resolvedPath = fallback
               }
             }
           }

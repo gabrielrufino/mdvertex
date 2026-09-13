@@ -315,4 +315,29 @@ describe('analyzeGraph', () => {
     expect(metrics.orphans).toEqual(['/docs/a.md', '/docs/b.md'])
     expect(metrics.isolated).toEqual([])
   })
+
+  it('should calculate in-degrees from references even when links property is absent on source', () => {
+    const graph: DependencyGraph = new Map([
+      [
+        '/docs/source.md',
+        {
+          filePath: '/docs/source.md',
+          exists: true,
+          references: ['/docs/child.md'],
+        },
+      ],
+      [
+        '/docs/child.md',
+        {
+          filePath: '/docs/child.md',
+          exists: true,
+          references: [],
+        },
+      ],
+    ])
+
+    const metrics = analyzeGraph(graph)
+    expect(metrics.orphans).toEqual(['/docs/source.md'])
+    expect(metrics.orphans).not.toContain('/docs/child.md')
+  })
 })

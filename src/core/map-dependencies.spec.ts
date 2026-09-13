@@ -174,4 +174,18 @@ describe('mapDependencies and renderers', () => {
     expect(extLink).toBeDefined()
     expect(extLink?.resolvedPath).toBe('https://google.com')
   })
+
+  it('should not exclude the entry path itself even if inside a default-excluded folder', () => {
+    const distDir = path.join(testDir, 'dist')
+    fs.mkdirSync(distDir, { recursive: true })
+    const distFile = path.join(distDir, 'bundle.md')
+    fs.writeFileSync(distFile, 'Links: [contact](../contact.md).')
+
+    const graph = mapDependencies(distFile)
+    const node = graph.get(path.resolve(distFile))
+
+    expect(node).toBeDefined()
+    expect(node?.exists).toBe(true)
+    expect(node?.references).toEqual([path.resolve(testDir, 'contact.md')])
+  })
 })

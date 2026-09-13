@@ -108,7 +108,10 @@ program
 
       const hasFatalErrors = metrics.brokenLinks.length > 0 || (options.strict && metrics.circularReferences.length > 0)
       if (hasFatalErrors) {
-        process.stderr.write(`\nCheck failed: ${metrics.brokenLinks.length} broken links found.\n`)
+        process.stderr.write(
+          `\nCheck failed: ${metrics.brokenLinks.length} broken links and `
+          + `${metrics.circularReferences.length} circular references found.\n`,
+        )
         process.exit(1)
       }
       else {

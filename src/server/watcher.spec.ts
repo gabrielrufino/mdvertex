@@ -108,7 +108,13 @@ describe('createFileWatcher', () => {
     fs.writeFileSync(mainPath, 'Initial', 'utf8')
 
     const initialGraph = mapDependencies(mainPath)
-    const onChange = vi.fn()
+    let resolveChange!: () => void
+    const changePromise = new Promise<void>((resolve) => {
+      resolveChange = resolve
+    })
+    const onChange = vi.fn(() => {
+      resolveChange()
+    })
 
     const watcher = createFileWatcher(mainPath, initialGraph, onChange, 100)
 
@@ -120,7 +126,12 @@ describe('createFileWatcher', () => {
       await new Promise(resolve => setTimeout(resolve, 20))
       fs.writeFileSync(mainPath, 'Edit 3', 'utf8')
 
-      await new Promise(resolve => setTimeout(resolve, 250))
+      const timeoutPromise = new Promise<void>((_, reject) =>
+        setTimeout(() => reject(new Error('Watcher debounce timed out')), 3000),
+      )
+
+      await Promise.race([changePromise, timeoutPromise])
+      await new Promise(resolve => setTimeout(resolve, 150))
 
       expect(onChange).toHaveBeenCalledTimes(1)
     }

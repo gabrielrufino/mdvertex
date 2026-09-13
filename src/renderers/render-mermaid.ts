@@ -18,6 +18,10 @@ export function renderMermaid(entryPath: string, graph: DependencyGraph): string
 
   const nodes = Array.from(graph.values())
 
+  for (const node of nodes) {
+    getNodeId(node.filePath)
+  }
+
   const groups = new Map<string, typeof nodes>()
   for (const node of nodes) {
     const relPath = getRelativePath(node.filePath)

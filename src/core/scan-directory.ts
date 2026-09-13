@@ -64,9 +64,10 @@ export function scanDirectory(
           const resolved = path.resolve(currentDir, link.target)
           resolvedPath = resolved
           if (!fs.existsSync(resolved)) {
-            const withMd = `${resolved}.md`
-            if (fs.existsSync(withMd)) {
-              resolvedPath = withMd
+            const fallback = [`${resolved}.md`, `${resolved}.markdown`]
+              .find(candidate => fs.existsSync(candidate))
+            if (fallback) {
+              resolvedPath = fallback
             }
           }
         }

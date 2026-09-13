@@ -47,5 +47,13 @@ describe('isExcluded', () => {
     expect(isExcluded('/workspace/project/docs/intro.md', rootDir, ['docs/*.md'])).toBe(true)
     expect(isExcluded('/workspace/project/docs/sub/intro.md', rootDir, ['docs/*.md'])).toBe(false)
     expect(isExcluded('/workspace/project/docs/sub/intro.md', rootDir, ['docs/*/*.md'])).toBe(true)
+    expect(isExcluded('/workspace/project/docs/sub/deep/intro.md', rootDir, ['docs/**/*.md'])).toBe(true)
+  })
+
+  it('should safely handle patterns with regex metacharacters without throwing', () => {
+    expect(() => isExcluded('/workspace/project/[test].md', rootDir, ['[*.md'])).not.toThrow()
+    expect(isExcluded('/workspace/project/[test].md', rootDir, ['[*.md'])).toBe(true)
+    expect(isExcluded('/workspace/project/regular.md', rootDir, ['[*.md'])).toBe(false)
+    expect(isExcluded('/workspace/project/a+b/test.md', rootDir, ['a+b/*.md'])).toBe(true)
   })
 })

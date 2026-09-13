@@ -138,4 +138,22 @@ describe('renderMermaid', () => {
     expect(result).not.toContain('subgraph subgraph_1 [""]')
     expect(result).toContain('node1["root.md"]')
   })
+
+  it('should maintain graph order node IDs across subgraphs', () => {
+    const main = path.resolve('main.md')
+    const docA = path.resolve('docs/a.md')
+    const rootB = path.resolve('root-b.md')
+
+    const graph: DependencyGraph = new Map([
+      [main, { filePath: main, exists: true, references: [] }],
+      [docA, { filePath: docA, exists: true, references: [] }],
+      [rootB, { filePath: rootB, exists: true, references: [] }],
+    ])
+
+    const result = renderMermaid(main, graph)
+    // In graph order: main = node0, docA = node1, rootB = node2
+    expect(result).toContain('node0["main.md"]')
+    expect(result).toContain('node1["docs/a.md"]')
+    expect(result).toContain('node2["root-b.md"]')
+  })
 })

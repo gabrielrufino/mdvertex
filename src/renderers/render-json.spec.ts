@@ -1,4 +1,4 @@
-import type { DependencyGraph } from '../types'
+import type { DependencyGraph, GraphMetrics } from '../types'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { renderJson } from './render-json'
@@ -48,7 +48,7 @@ describe('renderJson', () => {
 
     const graph: DependencyGraph = new Map()
 
-    const customMetrics = {
+    const customMetrics: GraphMetrics = {
       totalFiles: 6,
       totalLinks: 3,
       brokenLinks: [
@@ -63,6 +63,8 @@ describe('renderJson', () => {
       circularReferences: [
         {
           cycle: [circleA, circleB, circleA],
+          source: circleB,
+          target: circleA,
           line: 12,
           column: 3,
         },

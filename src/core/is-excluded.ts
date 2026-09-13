@@ -1,5 +1,19 @@
 import path from 'node:path'
 
+function globToRegExp(pattern: string): RegExp {
+  const source = pattern
+    .split('**')
+    .map(part =>
+      part
+        .split('*')
+        .map(segment => segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        .join('[^/]*'),
+    )
+    .join('.*')
+
+  return new RegExp(`^${source}$`)
+}
+
 /**
  * Checks if a path should be excluded based on exclusion patterns.
  * Supports directory names, relative paths, and basic glob patterns (*).
@@ -27,9 +41,7 @@ export function isExcluded(targetPath: string, rootDir: string, patterns: string
     }
 
     if (cleanPattern.includes('*')) {
-      const regexPattern = new RegExp(
-        `^${cleanPattern.replace(/\./g, '\\.').replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*')}$`,
-      )
+      const regexPattern = globToRegExp(cleanPattern)
       if (regexPattern.test(relative) || regexPattern.test(baseName)) {
         return true
       }

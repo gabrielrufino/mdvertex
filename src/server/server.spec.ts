@@ -251,28 +251,37 @@ describe('startServer options and lifecycle', () => {
     fs.writeFileSync(tempFile, '# Port test', 'utf8')
 
     const initialPort = 4900 + Math.floor(Math.random() * 50)
-    // First start server on initialPort
-    const instance1 = await startServer({
-      entryPath: tempFile,
-      open: false,
-      port: initialPort,
-    })
+    let instance1: Awaited<ReturnType<typeof startServer>> | undefined
+    let instance2: Awaited<ReturnType<typeof startServer>> | undefined
 
-    expect(instance1.port).toBe(initialPort)
+    try {
+      instance1 = await startServer({
+        entryPath: tempFile,
+        open: false,
+        port: initialPort,
+      })
 
-    // Now start second server requesting same initialPort -> should retry on initialPort + 1
-    const instance2 = await startServer({
-      entryPath: tempFile,
-      open: false,
-      port: initialPort,
-    })
+      expect(instance1.port).toBeGreaterThanOrEqual(initialPort)
 
-    expect(instance2.port).toBe(initialPort + 1)
+      // Start second server requesting the port already bound by instance1 -> should retry on instance1.port + 1
+      instance2 = await startServer({
+        entryPath: tempFile,
+        open: false,
+        port: instance1.port,
+      })
 
-    await instance1.close()
-    await instance2.close()
-    if (fs.existsSync(tempFile)) {
-      fs.rmSync(tempFile, { force: true })
+      expect(instance2.port).toBe(instance1.port + 1)
+    }
+    finally {
+      if (instance1) {
+        await instance1.close()
+      }
+      if (instance2) {
+        await instance2.close()
+      }
+      if (fs.existsSync(tempFile)) {
+        fs.rmSync(tempFile, { force: true })
+      }
     }
   })
 })

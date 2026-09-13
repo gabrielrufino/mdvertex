@@ -25,6 +25,7 @@ describe('scanDirectory', () => {
     fs.writeFileSync(path.join(testDir, 'level1', 'level2', 'deep.md'), 'Deep note.')
 
     // Add .markdown extension file and non-markdown file
+    fs.writeFileSync(path.join(testDir, 'link-to-extless-markdown.md'), 'Links to [extra](extra).')
     fs.writeFileSync(path.join(testDir, 'extra.markdown'), 'Markdown with .markdown extension. Links to [[guide]] and [[guide]] and [ext](https://example.com) and [node](node_modules/pkg.md).')
     fs.writeFileSync(path.join(testDir, 'image.png'), 'Not markdown.')
 
@@ -45,9 +46,14 @@ describe('scanDirectory', () => {
     const result = scanDirectory(testDir, { external: true })
 
     expect(result.isDirectory).toBe(true)
-    expect(result.metrics.totalFiles).toBe(7)
+    expect(result.metrics.totalFiles).toBe(8)
     expect(result.graph.has(path.join(testDir, 'extra.markdown'))).toBe(true)
     expect(result.graph.has(path.join(testDir, 'image.png'))).toBe(false)
+
+    // Verify extensionless link resolves to .markdown
+    const linkNode = result.graph.get(path.join(testDir, 'link-to-extless-markdown.md'))
+    expect(linkNode).toBeDefined()
+    expect(linkNode?.references).toEqual([path.join(testDir, 'extra.markdown')])
 
     // Verify default excludes are omitted
     for (const folder of ['node_modules', '.git', '.obsidian', 'dist', '.turbo', '.next']) {
