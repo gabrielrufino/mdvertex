@@ -11,6 +11,9 @@ export default defineConfig({
     alwaysBundle: [/.*/],
     onlyBundle: false,
   },
+  loader: {
+    '.hbs': 'text',
+  },
   define: {
     __VERSION__: JSON.stringify(pkg.version),
   },

@@ -30,6 +30,7 @@ describe('renderHtml', () => {
 
     expect(html).toContain('<!DOCTYPE html>')
     expect(html).toContain('<title>mdvertex - main.md</title>')
+    expect(html).toContain(`title="${entry}">main.md</div>`)
     expect(html).toContain('cdn.jsdelivr.net/npm/d3@7')
     expect(html).toContain('cdn.jsdelivr.net/npm/mermaid')
     expect(html).toContain('flowchart TD')
