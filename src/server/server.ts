@@ -73,7 +73,7 @@ export function createRequestHandler(entryPath: string, getGraph: () => Dependen
   const absoluteEntry = path.resolve(entryPath)
 
   return (req: http.IncomingMessage, res: http.ServerResponse) => {
-    const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
+    const parsedUrl = new URL(req.url || '/', 'http://localhost')
     const pathname = parsedUrl.pathname
 
     if (req.method === 'GET' && pathname === '/') {
@@ -166,7 +166,7 @@ export async function startServer(options: ServerOptions): Promise<ServerInstanc
         }
       })
 
-      server.listen(port, () => {
+      server.listen(port, '127.0.0.1', () => {
         resolve(port)
       })
     }

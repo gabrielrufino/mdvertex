@@ -1,54 +1,93 @@
-import { exec } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import process from 'node:process'
 
-export type CommandExecutor = (command: string, callback?: (error: Error | null, stdout: string, stderr: string) => void) => void
+export type CommandRunner = (command: string, args: string[]) => void
 
-export function escapeArg(arg: string, platform = process.platform): string {
-  if (platform === 'win32') {
-    // Escape double quotes by doubling them (Windows cmd convention)
-    return `"${arg.replace(/"/g, '""')}"`
-  }
-  // Enclose in single quotes and escape internal single quotes
-  return `'${arg.replace(/'/g, '\'\\\'\'')}'`
-}
-
-export function getBrowserCommand(url: string, platform = process.platform): string {
-  const escapedUrl = escapeArg(url, platform)
+export function getBrowserTarget(url: string, platform = process.platform): { command: string, args: string[] } {
   if (platform === 'darwin') {
-    return `open ${escapedUrl}`
+    return { command: 'open', args: [url] }
   }
   if (platform === 'win32') {
-    return `start "" ${escapedUrl}`
+    return { command: 'cmd', args: ['/c', 'start', '', url] }
   }
-  return `xdg-open ${escapedUrl}`
+  return { command: 'xdg-open', args: [url] }
 }
 
-export function openBrowser(url: string, platform = process.platform, executor: CommandExecutor = exec): void {
-  const command = getBrowserCommand(url, platform)
-  executor(command, () => {
-    // Fail silently in headless or test environments
-  })
-}
-
-export function getEditorCommand(filePath: string, env = process.env, platform = process.platform): string {
-  const escapedPath = escapeArg(filePath, platform)
+export function getEditorTarget(filePath: string, env = process.env, platform = process.platform): { command: string, args: string[] } {
   const customEditor = env.VISUAL || env.EDITOR
   if (customEditor) {
-    return `${customEditor} ${escapedPath}`
+    const parts = customEditor.trim().split(/\s+/)
+    return { command: parts[0], args: [...parts.slice(1), filePath] }
   }
 
   if (platform === 'darwin') {
-    return `code ${escapedPath} || open ${escapedPath}`
+    return { command: 'open', args: [filePath] }
   }
   if (platform === 'win32') {
-    return `code ${escapedPath} || start "" ${escapedPath}`
+    return { command: 'cmd', args: ['/c', 'start', '', filePath] }
   }
-  return `code ${escapedPath} || xdg-open ${escapedPath}`
+  return { command: 'xdg-open', args: [filePath] }
 }
 
-export function openEditor(filePath: string, env = process.env, platform = process.platform, executor: CommandExecutor = exec): void {
-  const command = getEditorCommand(filePath, env, platform)
-  executor(command, () => {
-    // Fail silently if editor is unavailable
-  })
+export function defaultRunner(command: string, args: string[]): void {
+  try {
+    const child = spawn(command, args, {
+      detached: true,
+      stdio: 'ignore',
+      shell: false,
+    })
+    child.unref()
+    child.on('error', () => {
+      // Fail silently
+    })
+  }
+  catch {
+    // Fail silently
+  }
+}
+
+export function openBrowser(url: string, platform = process.platform, runner: CommandRunner = defaultRunner): void {
+  const target = getBrowserTarget(url, platform)
+  runner(target.command, target.args)
+}
+
+export function openEditor(
+  filePath: string,
+  env = process.env,
+  platform = process.platform,
+  runner?: CommandRunner,
+): void {
+  const customEditor = env.VISUAL || env.EDITOR
+  if (customEditor) {
+    const target = getEditorTarget(filePath, env, platform)
+    if (runner) {
+      runner(target.command, target.args)
+    }
+    else {
+      defaultRunner(target.command, target.args)
+    }
+    return
+  }
+
+  if (runner) {
+    runner('code', [filePath])
+    return
+  }
+
+  try {
+    const child = spawn('code', [filePath], {
+      detached: true,
+      stdio: 'ignore',
+      shell: false,
+    })
+    child.unref()
+    child.on('error', () => {
+      const fallback = getEditorTarget(filePath, env, platform)
+      defaultRunner(fallback.command, fallback.args)
+    })
+  }
+  catch {
+    const fallback = getEditorTarget(filePath, env, platform)
+    defaultRunner(fallback.command, fallback.args)
+  }
 }

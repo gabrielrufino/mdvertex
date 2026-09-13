@@ -1,66 +1,88 @@
 import { describe, expect, it, vi } from 'vitest'
-import { escapeArg, getBrowserCommand, getEditorCommand, openBrowser, openEditor } from './open-target'
+import { defaultRunner, getBrowserTarget, getEditorTarget, openBrowser, openEditor } from './open-target'
 
 describe('open-target', () => {
-  describe('escapeArg', () => {
-    it('should escape correctly on posix', () => {
-      expect(escapeArg('/path/to/my file.md', 'linux')).toBe('\'/path/to/my file.md\'')
-      expect(escapeArg('$(rm -rf /)', 'darwin')).toBe('\'$(rm -rf /)\'')
-      expect(escapeArg('user\'s file.md', 'linux')).toBe('\'user\'\\\'\'s file.md\'')
-    })
-
-    it('should escape correctly on windows', () => {
-      expect(escapeArg('C:\\path\\my file.md', 'win32')).toBe('"C:\\path\\my file.md"')
-      expect(escapeArg('my "file".md', 'win32')).toBe('"my ""file"".md"')
-    })
-  })
-
-  describe('getBrowserCommand', () => {
+  describe('getBrowserTarget', () => {
     it('should return open command for macOS', () => {
-      expect(getBrowserCommand('http://localhost:3000', 'darwin')).toBe('open \'http://localhost:3000\'')
+      expect(getBrowserTarget('http://localhost:3000', 'darwin')).toEqual({
+        command: 'open',
+        args: ['http://localhost:3000'],
+      })
     })
 
     it('should return start command for Windows', () => {
-      expect(getBrowserCommand('http://localhost:3000', 'win32')).toBe('start "" "http://localhost:3000"')
+      expect(getBrowserTarget('http://localhost:3000', 'win32')).toEqual({
+        command: 'cmd',
+        args: ['/c', 'start', '', 'http://localhost:3000'],
+      })
     })
 
     it('should return xdg-open command for Linux', () => {
-      expect(getBrowserCommand('http://localhost:3000', 'linux')).toBe('xdg-open \'http://localhost:3000\'')
+      expect(getBrowserTarget('http://localhost:3000', 'linux')).toEqual({
+        command: 'xdg-open',
+        args: ['http://localhost:3000'],
+      })
     })
   })
 
-  describe('getEditorCommand', () => {
+  describe('getEditorTarget', () => {
     it('should prioritize VISUAL or EDITOR environment variable when present', () => {
-      expect(getEditorCommand('/path/file.md', { VISUAL: 'subl -w' }, 'linux')).toBe('subl -w \'/path/file.md\'')
-      expect(getEditorCommand('/path/file.md', { EDITOR: 'vim' }, 'linux')).toBe('vim \'/path/file.md\'')
+      expect(getEditorTarget('/path/file.md', { VISUAL: 'subl -w' }, 'linux')).toEqual({
+        command: 'subl',
+        args: ['-w', '/path/file.md'],
+      })
+      expect(getEditorTarget('/path/file.md', { EDITOR: 'vim' }, 'linux')).toEqual({
+        command: 'vim',
+        args: ['/path/file.md'],
+      })
     })
 
-    it('should return default platform commands with VS Code fallback', () => {
-      expect(getEditorCommand('/path/file.md', {}, 'darwin')).toBe('code \'/path/file.md\' || open \'/path/file.md\'')
-      expect(getEditorCommand('/path/file.md', {}, 'win32')).toBe('code "C:\\path\\file.md" || start "" "C:\\path\\file.md"'.replace(/C:\\path\\file\.md/g, '/path/file.md'))
-      expect(getEditorCommand('/path/file.md', {}, 'linux')).toBe('code \'/path/file.md\' || xdg-open \'/path/file.md\'')
+    it('should return default platform fallback targets when no custom editor is set', () => {
+      expect(getEditorTarget('/path/file.md', {}, 'darwin')).toEqual({
+        command: 'open',
+        args: ['/path/file.md'],
+      })
+      expect(getEditorTarget('C:\\path\\file.md', {}, 'win32')).toEqual({
+        command: 'cmd',
+        args: ['/c', 'start', '', 'C:\\path\\file.md'],
+      })
+      expect(getEditorTarget('/path/file.md', {}, 'linux')).toEqual({
+        command: 'xdg-open',
+        args: ['/path/file.md'],
+      })
+    })
+
+    it('should preserve special characters and variable expressions literally in args', () => {
+      const complexPath = 'C:\\path\\%USERPROFILE%\\& calc.exe && file.md'
+      const target = getEditorTarget(complexPath, { EDITOR: 'notepad' }, 'win32')
+      expect(target.command).toBe('notepad')
+      expect(target.args).toEqual([complexPath])
     })
   })
 
   describe('openBrowser and openEditor execution', () => {
-    it('should execute command via custom executor for openBrowser', () => {
-      const mockExecutor = vi.fn((_cmd, cb) => {
-        if (typeof cb === 'function')
-          cb(null, '', '')
-      })
-
-      openBrowser('http://localhost:3000', 'linux', mockExecutor)
-      expect(mockExecutor).toHaveBeenCalledWith('xdg-open \'http://localhost:3000\'', expect.any(Function))
+    it('should execute target via custom runner for openBrowser', () => {
+      const mockRunner = vi.fn()
+      openBrowser('http://localhost:3000', 'linux', mockRunner)
+      expect(mockRunner).toHaveBeenCalledWith('xdg-open', ['http://localhost:3000'])
     })
 
-    it('should execute command via custom executor for openEditor', () => {
-      const mockExecutor = vi.fn((_cmd, cb) => {
-        if (typeof cb === 'function')
-          cb(null, '', '')
-      })
+    it('should execute target via custom runner for openEditor with custom env', () => {
+      const mockRunner = vi.fn()
+      openEditor('/path/file.md', { EDITOR: 'nano' }, 'linux', mockRunner)
+      expect(mockRunner).toHaveBeenCalledWith('nano', ['/path/file.md'])
+    })
 
-      openEditor('/path/file.md', { EDITOR: 'nano' }, 'linux', mockExecutor)
-      expect(mockExecutor).toHaveBeenCalledWith('nano \'/path/file.md\'', expect.any(Function))
+    it('should execute code binary via custom runner for openEditor default', () => {
+      const mockRunner = vi.fn()
+      openEditor('/path/file.md', {}, 'linux', mockRunner)
+      expect(mockRunner).toHaveBeenCalledWith('code', ['/path/file.md'])
+    })
+
+    it('defaultRunner should not throw even on non-existent command', () => {
+      expect(() => {
+        defaultRunner('non-existent-command-12345', ['arg1'])
+      }).not.toThrow()
     })
   })
 })

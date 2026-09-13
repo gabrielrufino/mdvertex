@@ -24,7 +24,13 @@ describe('createFileWatcher', () => {
     fs.writeFileSync(subPath, 'Sub content', 'utf8')
 
     const initialGraph = mapDependencies(mainPath)
-    const onChange = vi.fn()
+    let resolveChange!: (graph: unknown) => void
+    const changePromise = new Promise((resolve) => {
+      resolveChange = resolve
+    })
+    const onChange = vi.fn((graph) => {
+      resolveChange(graph)
+    })
 
     const watcher = createFileWatcher(mainPath, initialGraph, onChange, 50)
 
@@ -33,7 +39,11 @@ describe('createFileWatcher', () => {
       fs.writeFileSync(extraPath, 'Extra file', 'utf8')
       fs.writeFileSync(mainPath, 'Updated [sub](./sub.md) and [extra](./extra.md)', 'utf8')
 
-      await new Promise(resolve => setTimeout(resolve, 200))
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Watcher onChange timed out')), 3000),
+      )
+
+      await Promise.race([changePromise, timeoutPromise])
 
       expect(onChange).toHaveBeenCalled()
       const lastCallArg = onChange.mock.calls[onChange.mock.calls.length - 1][0]

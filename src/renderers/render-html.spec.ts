@@ -40,5 +40,28 @@ describe('renderHtml', () => {
     expect(html).toContain('btn-theme')
     expect(html).toContain('/events')
     expect(html).toContain('/api/open')
+    expect(html).toContain('securityLevel: \'strict\'')
+  })
+
+  it('should escape HTML and script tags in paths to prevent XSS', () => {
+    const maliciousPath = path.resolve('<script>alert("xss")</script>.md')
+    const graph: DependencyGraph = new Map([
+      [
+        maliciousPath,
+        {
+          filePath: maliciousPath,
+          exists: true,
+          references: [],
+        },
+      ],
+    ])
+
+    const html = renderHtml(maliciousPath, graph)
+
+    expect(html).not.toContain('<script>alert("xss")</script>.md</title>')
+    expect(html).toContain('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;.md')
+    // In JSON inside <script>, < and > must be escaped so closing tags cannot break out
+    expect(html).not.toContain('</script><script>')
+    expect(html).toContain('\\u003cscript\\u003e')
   })
 })

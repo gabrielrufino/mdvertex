@@ -58,27 +58,37 @@ describe('cli e2e', () => {
       env: { ...process.env, CONSOLA_LEVEL: '3' },
     })
 
-    const startedPromise = new Promise<string>((resolve, reject) => {
-      proc.stdout.on('data', (data) => {
-        const text = data.toString()
-        if (text.includes('Local:')) {
-          resolve(text)
-        }
+    try {
+      const startedPromise = new Promise<string>((resolve, reject) => {
+        proc.stdout.on('data', (data) => {
+          const text = data.toString()
+          if (text.includes('Local:')) {
+            resolve(text)
+          }
+        })
+        proc.stderr.on('data', (data) => {
+          reject(new Error(data.toString()))
+        })
+        proc.on('error', reject)
+        proc.on('exit', (code) => {
+          reject(new Error(`CLI process exited prematurely with code ${code}`))
+        })
       })
-      proc.stderr.on('data', (data) => {
-        reject(new Error(data.toString()))
+
+      const timeoutPromise = new Promise<string>((_, reject) => {
+        setTimeout(() => reject(new Error('CLI startup timed out')), 5000)
       })
-      proc.on('error', reject)
-    })
 
-    const output = await startedPromise
-    expect(output).toContain(`http://localhost:${testPort}`)
+      const output = await Promise.race([startedPromise, timeoutPromise])
+      expect(output).toContain(`http://localhost:${testPort}`)
 
-    const res = await fetch(`http://localhost:${testPort}/api/graph`)
-    expect(res.status).toBe(200)
-    const json = await res.json()
-    expect(json.relativeEntry).toBe(getRelativePath(entryFile))
-
-    proc.kill('SIGTERM')
+      const res = await fetch(`http://localhost:${testPort}/api/graph`)
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.relativeEntry).toBe(getRelativePath(entryFile))
+    }
+    finally {
+      proc.kill('SIGTERM')
+    }
   })
 })

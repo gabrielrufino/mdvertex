@@ -41,6 +41,15 @@ export function renderHtml(entryPath: string, graph: DependencyGraph): string {
     }
   }
 
+  function escapeHtml(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+  }
+
   const initialData = JSON.stringify({
     entry: absoluteEntry,
     relativeEntry,
@@ -48,14 +57,14 @@ export function renderHtml(entryPath: string, graph: DependencyGraph): string {
     nodes,
     links,
     nodeMap,
-  })
+  }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e')
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>mdvertex - ${relativeEntry}</title>
+  <title>mdvertex - ${escapeHtml(relativeEntry)}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -327,6 +336,17 @@ export function renderHtml(entryPath: string, graph: DependencyGraph): string {
       filter: brightness(1.2);
     }
 
+    .graph-node:focus-visible circle {
+      stroke: var(--accent-hover);
+      stroke-width: 3px;
+      outline: none;
+    }
+
+    .node:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
     .toast {
       position: fixed;
       bottom: 24px;
@@ -392,7 +412,7 @@ export function renderHtml(entryPath: string, graph: DependencyGraph): string {
       mermaid.initialize({
         startOnLoad: false,
         theme: state.theme === 'light' ? 'default' : 'dark',
-        securityLevel: 'loose',
+        securityLevel: 'strict',
         flowchart: {
           htmlLabels: true,
           useMaxWidth: false,
@@ -490,6 +510,9 @@ export function renderHtml(entryPath: string, graph: DependencyGraph): string {
         .enter()
         .append('g')
         .attr('class', d => \`graph-node \${d.isEntry ? 'entry' : ''} \${!d.exists ? 'broken' : ''}\`)
+        .attr('tabindex', '0')
+        .attr('role', 'button')
+        .attr('aria-label', d => d.relativePath)
         .call(d3.drag()
           .on('start', (event, d) => {
             if (!event.active) networkSimulation.alphaTarget(0.3).restart()
@@ -508,6 +531,13 @@ export function renderHtml(entryPath: string, graph: DependencyGraph): string {
         .on('click', (event, d) => {
           event.stopPropagation()
           openFile(d)
+        })
+        .on('keydown', (event, d) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            event.stopPropagation()
+            openFile(d)
+          }
         })
 
       nodeElements.append('circle')
@@ -593,17 +623,27 @@ export function renderHtml(entryPath: string, graph: DependencyGraph): string {
 
     function attachFlowchartClickHandlers() {
       const nodes = flowchartCanvas.querySelectorAll('.node')
-      nodes.forEach(nodeEl => {
+      nodes.forEach((nodeEl) => {
         const idAttr = nodeEl.id || ''
-        const match = idAttr.match(/flowchart-(node\\d+)-/)
+        const match = idAttr.match(/flowchart-(node\d+)-/)
         const nodeId = match ? match[1] : nodeEl.getAttribute('data-id')
         const nodeInfo = state.nodeMap[nodeId]
 
         if (nodeInfo) {
           nodeEl.style.cursor = 'pointer'
+          nodeEl.setAttribute('tabindex', '0')
+          nodeEl.setAttribute('role', 'button')
+          nodeEl.setAttribute('aria-label', nodeInfo.relativePath)
           nodeEl.addEventListener('click', (e) => {
             e.stopPropagation()
             openFile(nodeInfo)
+          })
+          nodeEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              e.stopPropagation()
+              openFile(nodeInfo)
+            }
           })
         }
       })
@@ -743,7 +783,7 @@ export function renderHtml(entryPath: string, graph: DependencyGraph): string {
   <header>
     <div class="brand">
       <div class="logo">📐 mdvertex</div>
-      <div class="entry-file" title="${absoluteEntry}">${relativeEntry}</div>
+      <div class="entry-file" title="${escapeHtml(absoluteEntry)}">${escapeHtml(relativeEntry)}</div>
       <div class="status-badge" id="status-badge">
         <span class="status-dot"></span>
         <span class="status-text">Live Sync</span>

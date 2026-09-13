@@ -121,4 +121,15 @@ describe('createRequestHandler', () => {
 
     expect(res.statusCode).toBe(404)
   })
+
+  it('should safely handle requests with malformed Host headers without throwing', () => {
+    const sseClients = new Set<http.ServerResponse>()
+    const handler = createRequestHandler(entryPath, () => mockGraph, sseClients)
+
+    const req = { method: 'GET', url: '/', headers: { host: 'invalid:host:[bad]' } } as unknown as http.IncomingMessage
+    const res = createMockResponse()
+
+    expect(() => handler(req, res)).not.toThrow()
+    expect(res.statusCode).toBe(200)
+  })
 })
