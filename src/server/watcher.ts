@@ -1,7 +1,7 @@
-import type { DependencyGraph } from '../types'
+import type { DependencyGraph, ScanOptions } from '../types'
 import fs from 'node:fs'
 import path from 'node:path'
-import { mapDependencies } from '../core'
+import { mapDependencies, scanDirectory } from '../core'
 
 export interface FileWatcher {
   close: () => void
@@ -13,15 +13,22 @@ export function createFileWatcher(
   initialGraph: DependencyGraph,
   onChange: (newGraph: DependencyGraph) => void,
   debounceMs = 100,
+  options: ScanOptions = {},
 ): FileWatcher {
   const absoluteEntry = path.resolve(entryPath)
+  const isDirectory = fs.existsSync(absoluteEntry) && fs.statSync(absoluteEntry).isDirectory()
   const watchers = new Map<string, fs.FSWatcher>()
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
   let isClosed = false
 
   function getPathsToWatch(graph: DependencyGraph): Set<string> {
     const paths = new Set<string>()
-    paths.add(path.dirname(absoluteEntry))
+    if (isDirectory) {
+      paths.add(absoluteEntry)
+    }
+    else {
+      paths.add(path.dirname(absoluteEntry))
+    }
 
     for (const [filePath, node] of graph.entries()) {
       if (node.exists) {
@@ -33,24 +40,29 @@ export function createFileWatcher(
   }
 
   function handleFsChange() {
-    if (isClosed)
+    if (isClosed) {
       return
+    }
     if (debounceTimer) {
       clearTimeout(debounceTimer)
     }
 
     debounceTimer = setTimeout(() => {
-      if (isClosed)
+      if (isClosed) {
         return
-      const updatedGraph = mapDependencies(absoluteEntry)
+      }
+      const updatedGraph = isDirectory
+        ? scanDirectory(absoluteEntry, options).graph
+        : mapDependencies(absoluteEntry, options)
       updateWatchedFiles(updatedGraph)
       onChange(updatedGraph)
     }, debounceMs)
   }
 
   function updateWatchedFiles(graph: DependencyGraph) {
-    if (isClosed)
+    if (isClosed) {
       return
+    }
     const targetPaths = getPathsToWatch(graph)
 
     for (const [watchedPath, watcher] of watchers.entries()) {
@@ -67,7 +79,7 @@ export function createFileWatcher(
           watchers.set(targetPath, watcher)
         }
         catch {
-          // Ignore watch errors on restricted/transient files
+          // Ignore watch errors
         }
       }
     }

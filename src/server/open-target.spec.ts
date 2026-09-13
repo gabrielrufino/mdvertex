@@ -1,7 +1,18 @@
-import { describe, expect, it, vi } from 'vitest'
+import { spawn } from 'node:child_process'
+import { EventEmitter } from 'node:events'
+import process from 'node:process'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defaultRunner, getBrowserTarget, getEditorTarget, openBrowser, openEditor } from './open-target'
 
+vi.mock('node:child_process', () => ({
+  spawn: vi.fn(),
+}))
+
 describe('open-target', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   describe('getBrowserTarget', () => {
     it('should return open command for macOS', () => {
       expect(getBrowserTarget('http://localhost:3000', 'darwin')).toEqual({
@@ -37,6 +48,14 @@ describe('open-target', () => {
       })
     })
 
+    it('should trim and handle multiple whitespace separators in custom editor string', () => {
+      const target = getEditorTarget('/path/file.md', { EDITOR: '   code   --wait   --goto   ' }, 'linux')
+      expect(target).toEqual({
+        command: 'code',
+        args: ['--wait', '--goto', '/path/file.md'],
+      })
+    })
+
     it('should return default platform fallback targets when no custom editor is set', () => {
       expect(getEditorTarget('/path/file.md', {}, 'darwin')).toEqual({
         command: 'open',
@@ -67,6 +86,20 @@ describe('open-target', () => {
       expect(mockRunner).toHaveBeenCalledWith('xdg-open', ['http://localhost:3000'])
     })
 
+    it('should execute target via default runner for openBrowser when no runner passed', () => {
+      const mockChild = Object.assign(new EventEmitter(), { unref: vi.fn() })
+      vi.mocked(spawn).mockReturnValue(mockChild as any)
+
+      openBrowser('http://localhost:3000', 'linux')
+
+      expect(spawn).toHaveBeenCalledWith('xdg-open', ['http://localhost:3000'], {
+        detached: true,
+        stdio: 'ignore',
+        shell: false,
+      })
+      expect(mockChild.unref).toHaveBeenCalled()
+    })
+
     it('should execute target via custom runner for openEditor with custom env', () => {
       const mockRunner = vi.fn()
       openEditor('/path/file.md', { EDITOR: 'nano' }, 'linux', mockRunner)
@@ -79,9 +112,89 @@ describe('open-target', () => {
       expect(mockRunner).toHaveBeenCalledWith('code', ['/path/file.md'])
     })
 
-    it('defaultRunner should not throw even on non-existent command', () => {
+    it('should use defaultRunner when openEditor is called with customEditor but without runner', () => {
+      const mockChild = Object.assign(new EventEmitter(), { unref: vi.fn() })
+      vi.mocked(spawn).mockReturnValue(mockChild as any)
+
+      openEditor('/path/file.md', { EDITOR: 'vim' }, 'linux')
+
+      expect(spawn).toHaveBeenCalledWith('vim', ['/path/file.md'], {
+        detached: true,
+        stdio: 'ignore',
+        shell: false,
+      })
+      expect(mockChild.unref).toHaveBeenCalled()
+    })
+
+    it('should fallback to platform default when code spawn fails with error event in openEditor', async () => {
+      const mockChild = Object.assign(new EventEmitter(), { unref: vi.fn() })
+      const fallbackChild = Object.assign(new EventEmitter(), { unref: vi.fn() })
+
+      vi.mocked(spawn).mockImplementation((cmd) => {
+        if (cmd === 'code') {
+          process.nextTick(() => mockChild.emit('error', new Error('ENOENT code')))
+          return mockChild as any
+        }
+        return fallbackChild as any
+      })
+
+      openEditor('/path/file.md', {}, 'linux')
+
+      await new Promise(resolve => setTimeout(resolve, 20))
+
+      expect(spawn).toHaveBeenCalledTimes(2)
+      expect(spawn).toHaveBeenNthCalledWith(1, 'code', ['/path/file.md'], {
+        detached: true,
+        stdio: 'ignore',
+        shell: false,
+      })
+      expect(spawn).toHaveBeenNthCalledWith(2, 'xdg-open', ['/path/file.md'], {
+        detached: true,
+        stdio: 'ignore',
+        shell: false,
+      })
+    })
+
+    it('should fallback to platform default when code spawn throws synchronous exception', () => {
+      const fallbackChild = Object.assign(new EventEmitter(), { unref: vi.fn() })
+
+      vi.mocked(spawn).mockImplementation((cmd) => {
+        if (cmd === 'code') {
+          throw new Error('Sync spawn error')
+        }
+        return fallbackChild as any
+      })
+
+      openEditor('/path/file.md', {}, 'darwin')
+
+      expect(spawn).toHaveBeenCalledTimes(2)
+      expect(spawn).toHaveBeenNthCalledWith(1, 'code', ['/path/file.md'], {
+        detached: true,
+        stdio: 'ignore',
+        shell: false,
+      })
+      expect(spawn).toHaveBeenNthCalledWith(2, 'open', ['/path/file.md'], {
+        detached: true,
+        stdio: 'ignore',
+        shell: false,
+      })
+    })
+
+    it('defaultRunner should not throw even on spawn error event or spawn throw', () => {
+      const mockChild = Object.assign(new EventEmitter(), { unref: vi.fn() })
+      vi.mocked(spawn).mockReturnValue(mockChild as any)
+
       expect(() => {
-        defaultRunner('non-existent-command-12345', ['arg1'])
+        defaultRunner('any-cmd', ['arg1'])
+        mockChild.emit('error', new Error('silent error'))
+      }).not.toThrow()
+
+      vi.mocked(spawn).mockImplementation(() => {
+        throw new Error('Immediate error')
+      })
+
+      expect(() => {
+        defaultRunner('any', ['arg'])
       }).not.toThrow()
     })
   })

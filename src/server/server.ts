@@ -1,14 +1,15 @@
-import type { DependencyGraph } from '../types'
+import type { DependencyGraph, ScanOptions } from '../types'
 import type { FileWatcher } from './watcher'
+import fs from 'node:fs'
 import http from 'node:http'
 import path from 'node:path'
-import { mapDependencies } from '../core'
+import { mapDependencies, scanDirectory } from '../core'
 import { renderHtml, renderMermaid } from '../renderers'
 import { getRelativePath } from '../utils'
 import { openBrowser, openEditor } from './open-target'
 import { createFileWatcher } from './watcher'
 
-export interface ServerOptions {
+export interface ServerOptions extends ScanOptions {
   entryPath: string
   port?: number
   open?: boolean
@@ -133,7 +134,10 @@ export function createRequestHandler(entryPath: string, getGraph: () => Dependen
 
 export async function startServer(options: ServerOptions): Promise<ServerInstance> {
   const absoluteEntry = path.resolve(options.entryPath)
-  let currentGraph = mapDependencies(absoluteEntry)
+  const isDirectory = fs.existsSync(absoluteEntry) && fs.statSync(absoluteEntry).isDirectory()
+  let currentGraph = isDirectory
+    ? scanDirectory(absoluteEntry, options).graph
+    : mapDependencies(absoluteEntry, options)
   const sseClients = new Set<http.ServerResponse>()
 
   function broadcast(graph: DependencyGraph) {
@@ -177,7 +181,7 @@ export async function startServer(options: ServerOptions): Promise<ServerInstanc
   watcher = createFileWatcher(absoluteEntry, currentGraph, (newGraph) => {
     currentGraph = newGraph
     broadcast(newGraph)
-  })
+  }, 100, options)
 
   const url = `http://localhost:${boundPort}`
 
