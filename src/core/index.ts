@@ -1,2 +1,5 @@
+export { analyzeGraph } from './analyze-graph'
+export { isExcluded } from './is-excluded'
 export { mapDependencies } from './map-dependencies'
 export { parseLinks } from './parse-links'
+export { scanDirectory } from './scan-directory'
