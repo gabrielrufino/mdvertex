@@ -51,6 +51,44 @@ describe('cli e2e', () => {
     expect(parsed.files[getRelativePath(entryFile)]).toBeDefined()
   })
 
+  it('should scan directory when path is a folder', () => {
+    const stdout = execSync(`node "${binPath}" "${tempDir}" --format json`, {
+      encoding: 'utf8',
+    })
+    const parsed = JSON.parse(stdout)
+    expect(parsed.entry).toBe(getRelativePath(tempDir))
+    expect(parsed.metrics.totalFiles).toBe(2)
+  })
+
+  it('should write output to file with --output flag', () => {
+    const outFile = path.join(tempDir, 'out.html')
+    execSync(`node "${binPath}" "${entryFile}" -o "${outFile}"`, {
+      encoding: 'utf8',
+    })
+    expect(fs.existsSync(outFile)).toBe(true)
+    const content = fs.readFileSync(outFile, 'utf8')
+    expect(content).toContain('<!DOCTYPE html>')
+  })
+
+  it('should pass check mode when all references are valid', () => {
+    const stdout = execSync(`node "${binPath}" "${entryFile}" --check`, {
+      encoding: 'utf8',
+    })
+    expect(stdout).toContain('All references are valid')
+  })
+
+  it('should fail check mode when broken links exist', () => {
+    const brokenFile = path.join(tempDir, 'broken.md')
+    fs.writeFileSync(brokenFile, 'Broken link: [non-existent](non-existent.md)', 'utf8')
+
+    expect(() => {
+      execSync(`node "${binPath}" "${brokenFile}" --check`, {
+        encoding: 'utf8',
+        stdio: 'pipe',
+      })
+    }).toThrow()
+  })
+
   it('should start live preview server by default', async () => {
     const testPort = 4200 + Math.floor(Math.random() * 300)
     const proc = spawn('node', [binPath, entryFile, '--no-open', '--port', String(testPort)], {
