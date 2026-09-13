@@ -1,6 +1,6 @@
 # mdvertex 📐
 
-A powerful CLI and library to map, visualize, and audit references and links within Markdown files. It parses standard Markdown links and Wiki-links, resolves relative file paths, and renders the resulting dependency graph in multiple formats.
+A powerful CLI and library to map, visualize, and audit references and links within Markdown files and directory vaults. It parses standard Markdown links and Wiki-links, resolves relative file paths, and renders the resulting dependency graph in multiple formats.
 
 [![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](https://unlicense.org/)
 
@@ -9,19 +9,21 @@ A powerful CLI and library to map, visualize, and audit references and links wit
 ## Features
 
 - 🌐 **Interactive Browser Live Preview (`browser` - Default)**:
-  - Visualizes your dependency graph with Mermaid.js directly in your browser.
+  - Visualizes your dependency graph with Mermaid.js flowchart and D3 force-directed radial views.
   - **Live Reload**: Automatically monitors Markdown files and syncs updates in real time via Server-Sent Events (SSE) without page reloads.
-  - **Click-to-Open**: Click any node in the browser to instantly open the corresponding file in VS Code or your default editor.
+  - **Instant Search & Filter**: Real-time search bar (shortcut `/`) to filter and highlight matching files across both views.
+  - **Click-to-Open**: Click any node to open the file in VS Code or your default editor.
   - **Pan & Zoom**: Smooth navigation across large graphs with mouse drag and zoom controls.
   - **Theme Toggle**: Switch between dark and light themes.
+- 📁 **Vault & Directory Scanning**: Scan entire folders (e.g. `mdvertex docs/` or `mdvertex .`) to map all Markdown notes, identify **orphan notes** (unreferenced files), and discover **isolated notes**.
+- 🛡️ **CI / Audit Mode (`--check` / `--strict`)**:
+  - Validates all internal links across documents.
+  - Pinpoints exact line and column numbers of broken links (`docs/guide.md:14:5 -> missing.md`).
+  - Detects circular dependency loops and returns exit code `1` on failure for CI/CD pipelines.
+- 💾 **Static Export (`-o, --output`)**: Export standalone interactive HTML, Mermaid diagrams, ASCII trees, or JSON without launching a server.
 - 🔍 **Multi-format Link Parsing**: Supports standard Markdown links `[label](path.md)` and Wiki-style links `[[WikiLink]]` (stripping anchors like `#section` and display names like `|label`).
-- 📂 **Auto-Resolution**: Seamlessly resolves links with or without the `.md` extension.
-- 🌳 **Interactive Terminal Tree (`tree`)**:
-  - Clickable ANSI terminal hyperlinks to open referenced files instantly.
-  - Broken link detection (`❌ [broken link]`).
-  - Circular dependency detection (`🔄 [circular]`).
-- 📊 **Mermaid Diagrams (`mermaid`)**: Outputs standard `flowchart TD` code ready to be pasted in Mermaid live editors or rendered directly in GitHub.
-- ⚙️ **Machine Readable (`json`)**: Generates structured JSON output showing the status and dependencies of all traversed files.
+- 📂 **Auto-Resolution & Subgraphs**: Seamlessly resolves links with or without `.md` and visually clusters notes into subgraphs by folder.
+- 🎛️ **Filters & Traversal Limits**: Use `--max-depth <n>` and `--exclude <patterns...>` to ignore `node_modules`, drafts, or test directories.
 
 ---
 
@@ -94,16 +96,22 @@ irm https://raw.githubusercontent.com/gabrielrufino/mdvertex/main/scripts/uninst
 ## Usage
 
 ```bash
-mdvertex <entry-file> [options]
+mdvertex <path> [options]
 ```
 
 ### Arguments
 
-- `<entry-file>`: Path to the entry Markdown file (e.g., `README.md` or `index`).
+- `<path>`: Path to a Markdown entry file (e.g. `README.md`) or a directory / vault (e.g. `docs/` or `.`).
 
 ### Options
 
-- `-f, --format <format>`: Output format. Supported formats: `browser`, `tree`, `json`, `mermaid` (default: `browser`).
+- `-f, --format <format>`: Output format. Supported formats: `browser`, `html`, `tree`, `json`, `mermaid` (default: `browser`).
+- `-o, --output <file>`: Output file path to write rendered results directly.
+- `-c, --check`: Run in audit / CI mode to check for broken links and cycles.
+- `--strict`: Treat circular references as fatal errors in `--check` mode.
+- `-d, --max-depth <number>`: Maximum traversal depth or directory scan recursion.
+- `-e, --exclude <patterns...>`: Patterns or directory names to exclude (e.g. `node_modules`, `drafts`).
+- `--external`: Include external URLs in parsing.
 - `-p, --port <number>`: Server port for browser preview (default: `3000`).
 - `--no-open`: Do not open the browser automatically.
 - `-v, --version`: Output the version number.
@@ -111,29 +119,57 @@ mdvertex <entry-file> [options]
 
 ---
 
-## Output Examples
+## Examples
 
-### 1. Interactive Browser Live Preview (`--format browser` / Default)
-
-Starts a local server, opens your browser, and watches for file changes:
+### 1. Interactive Browser Live Preview (Default)
 
 ```bash
-$ mdvertex docs/intro.md
-
-📐 mdvertex v1.1.1
-➜  Local:    http://localhost:3000
-➜  Watching: docs/intro.md and referenced files...
+mdvertex docs/
 ```
 
-- **Click any node** to open the file in your editor (`code`, `$EDITOR`, or default app).
-- Edit any markdown file in your editor and watch the diagram **update live** in your browser.
+- Opens `http://localhost:3000` with live SSE auto-reload on file edits.
+- Press `/` to quickly search and filter notes.
+- Click any node to open it in your editor.
 
-### 2. Interactive Tree Format (`--format tree`)
-
-Displays a hierarchical diagram of dependencies with ANSI hyperlinks:
+### 2. CI / Audit Check Mode (`--check`)
 
 ```bash
-$ mdvertex docs/intro.md --format tree
+mdvertex docs/ --check
+```
+
+Output:
+```text
+mdvertex check: Scanning references from docs...
+
+Broken links (1):
+  ❌ docs/intro.md:14:5 -> missing.md
+
+Summary:
+  Files checked:       12
+  Total links checked: 34
+  Broken links:        1
+  Circular references: 0
+  Orphan files:        2
+  Isolated files:      1
+
+Check failed: 1 broken links found.
+```
+
+### 3. Static HTML Export (`--output`)
+
+```bash
+mdvertex docs/ -o ./dist/graph.html
+```
+
+Generates a standalone, fully-functional HTML file that can be hosted on GitHub Pages or opened offline via `file://`.
+
+### 4. Interactive Terminal Tree (`--format tree`)
+
+```bash
+mdvertex docs/intro.md --format tree
+```
+
+```text
 📄 docs/intro.md
 ├── docs/getting-started.md
 │   └── docs/installation.md
@@ -143,75 +179,10 @@ $ mdvertex docs/intro.md --format tree
 └── docs/faq.md
 ```
 
-### 3. Mermaid Format (`--format mermaid`)
-
-Generates a flowchart representing the references, visually highlighting the entry file and broken links:
+### 5. Mermaid Flowchart Diagram (`--format mermaid`)
 
 ```bash
-$ mdvertex docs/intro.md --format mermaid
-flowchart TD
-    node0["docs/intro.md"]
-    node1["docs/getting-started.md"]
-    node2["docs/installation.md"]
-    node3["docs/advanced-topics.md"]
-    node4["docs/troubleshooting.md"]
-    node5["docs/faq.md"]
-
-    node0 --> node1
-    node0 --> node3
-    node0 --> node5
-    node1 --> node2
-    node3 --> node4
-    node3 --> node0
-
-    style node4 fill:#ffcccc,stroke:#ff0000,stroke-width:2px;
-    style node0 fill:#e1f5fe,stroke:#03a9f4,stroke-width:2px;
-```
-
-### 4. JSON Format (`--format json`)
-
-Outputs a structured representation of the resolved dependency graph:
-
-```bash
-$ mdvertex docs/intro.md --format json
-{
-  "entry": "docs/intro.md",
-  "files": {
-    "docs/intro.md": {
-      "exists": true,
-      "references": [
-        "docs/getting-started.md",
-        "docs/advanced-topics.md",
-        "docs/faq.md"
-      ]
-    },
-    "docs/getting-started.md": {
-      "exists": true,
-      "references": [
-        "docs/installation.md"
-      ]
-    },
-    "docs/installation.md": {
-      "exists": true,
-      "references": []
-    },
-    "docs/advanced-topics.md": {
-      "exists": true,
-      "references": [
-        "docs/troubleshooting.md",
-        "docs/intro.md"
-      ]
-    },
-    "docs/troubleshooting.md": {
-      "exists": false,
-      "references": []
-    },
-    "docs/faq.md": {
-      "exists": true,
-      "references": []
-    }
-  }
-}
+mdvertex docs/ --format mermaid
 ```
 
 ---
