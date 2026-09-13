@@ -66,12 +66,14 @@
       border-radius: var(--radius);
       z-index: 100;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      gap: 16px;
     }
 
     .brand {
       display: flex;
       align-items: center;
       gap: 12px;
+      flex-shrink: 0;
     }
 
     .logo {
@@ -91,7 +93,7 @@
       padding: 4px 8px;
       border-radius: 4px;
       border: 1px solid var(--border);
-      max-width: 320px;
+      max-width: 260px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -117,6 +119,12 @@
       border-color: rgba(248, 81, 73, 0.3);
     }
 
+    .status-badge.static {
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--accent);
+      border-color: rgba(88, 166, 255, 0.3);
+    }
+
     .status-dot {
       width: 8px;
       height: 8px;
@@ -124,10 +132,62 @@
       background: currentColor;
     }
 
+    .search-box {
+      display: flex;
+      align-items: center;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 8px;
+      gap: 6px;
+      flex: 1;
+      max-width: 320px;
+      transition: border-color 0.15s ease;
+    }
+
+    .search-box:focus-within {
+      border-color: var(--accent);
+    }
+
+    .search-input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.85rem;
+      width: 100%;
+    }
+
+    .search-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .search-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .search-clear {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0 2px;
+      font-size: 0.8rem;
+      display: none;
+    }
+
+    .search-clear:hover {
+      color: var(--text);
+    }
+
     .controls {
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-shrink: 0;
     }
 
     button {
@@ -220,6 +280,7 @@
 
     .graph-node {
       cursor: pointer;
+      transition: opacity 0.2s ease;
     }
 
     .graph-node circle {
@@ -313,6 +374,8 @@
     import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7/+esm'
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'
 
+    const isStatic = window.location.protocol === 'file:' || !window.location.host
+
     const state = {
       ...{{{initialData}}},
       layout: localStorage.getItem('mdvertex-layout') || 'network',
@@ -323,6 +386,7 @@
       startX: 0,
       startY: 0,
       theme: localStorage.getItem('mdvertex-theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'),
+      searchQuery: '',
     }
 
     document.documentElement.setAttribute('data-theme', state.theme)
@@ -334,6 +398,9 @@
     const statusBadge = document.getElementById('status-badge')
     const toast = document.getElementById('toast')
     const btnLayout = document.getElementById('btn-layout')
+    const searchInput = document.getElementById('search-input')
+    const searchMeta = document.getElementById('search-meta')
+    const searchClear = document.getElementById('search-clear')
 
     let networkSimulation = null
     let networkZoomBehavior = null
@@ -365,6 +432,16 @@
         return
       }
 
+      if (isStatic) {
+        try {
+          await navigator.clipboard.writeText(nodeInfo.filePath)
+          showToast(`📋 Copied path: ${nodeInfo.relativePath}`)
+        } catch {
+          showToast(`File: ${nodeInfo.relativePath}`)
+        }
+        return
+      }
+
       showToast(`Opening ${nodeInfo.relativePath} in editor...`)
       try {
         const res = await fetch(`/api/open?file=${encodeURIComponent(nodeInfo.filePath)}`, {
@@ -374,8 +451,52 @@
           showToast(`Failed to open file: ${nodeInfo.relativePath}`)
         }
       } catch {
-        showToast('Error connecting to server')
+        showToast('Server unavailable')
       }
+    }
+
+    function applySearchFilter() {
+      const query = state.searchQuery.toLowerCase().trim()
+      searchClear.style.display = query ? 'inline-block' : 'none'
+
+      const matchedIds = new Set()
+      if (query) {
+        state.nodes.forEach(n => {
+          if (n.relativePath.toLowerCase().includes(query) || n.filePath.toLowerCase().includes(query)) {
+            matchedIds.add(n.id)
+          }
+        })
+        searchMeta.textContent = `${matchedIds.size}/${state.nodes.length}`
+      } else {
+        searchMeta.textContent = ''
+      }
+
+      // Filter Radial View
+      if (networkContainer) {
+        networkContainer.selectAll('.graph-node')
+          .style('opacity', d => (!query || matchedIds.has(d.id)) ? 1 : 0.15)
+
+        networkContainer.selectAll('.graph-link')
+          .style('opacity', l => {
+            if (!query) return 0.6
+            const sId = typeof l.source === 'object' ? l.source.id : l.source
+            const tId = typeof l.target === 'object' ? l.target.id : l.target
+            return (matchedIds.has(sId) && matchedIds.has(tId)) ? 1 : 0.05
+          })
+      }
+
+      // Filter Flowchart View
+      const flowchartNodes = flowchartCanvas.querySelectorAll('.node')
+      flowchartNodes.forEach(nodeEl => {
+        const idAttr = nodeEl.id || ''
+        const match = idAttr.match(/flowchart-(node\d+)-/)
+        const nodeId = match ? match[1] : nodeEl.getAttribute('data-id')
+        if (!query || matchedIds.has(nodeId)) {
+          nodeEl.style.opacity = '1'
+        } else {
+          nodeEl.style.opacity = '0.15'
+        }
+      })
     }
 
     function initNetworkView() {
@@ -514,8 +635,8 @@
             .attr('transform', d => `translate(${d.x},${d.y})`)
         })
 
-      // Hover effects
       nodeElements.on('mouseenter', (_event, d) => {
+        if (state.searchQuery) return
         const connectedNodeIds = new Set([d.id])
         links.forEach(l => {
           const sId = typeof l.source === 'object' ? l.source.id : l.source
@@ -541,9 +662,12 @@
           return (sId === d.id || tId === d.id) ? 1 : 0.15
         })
       }).on('mouseleave', () => {
+        if (state.searchQuery) return
         linkElements.classed('active', false).attr('marker-end', 'url(#arrow)').style('opacity', 0.6)
         nodeElements.style('opacity', 1)
       })
+
+      applySearchFilter()
     }
 
     function applyFlowchartTransform() {
@@ -555,6 +679,7 @@
         const { svg } = await mermaid.render('mermaid-svg-' + Date.now(), code)
         flowchartCanvas.innerHTML = svg
         attachFlowchartClickHandlers()
+        applySearchFilter()
       } catch (err) {
         showToast('Error rendering flowchart: ' + err.message)
       }
@@ -678,9 +803,40 @@
           renderFlowchart(state.mermaid)
         }
       })
+
+      searchInput.addEventListener('input', (e) => {
+        state.searchQuery = e.target.value
+        applySearchFilter()
+      })
+
+      searchClear.addEventListener('click', () => {
+        searchInput.value = ''
+        state.searchQuery = ''
+        applySearchFilter()
+        searchInput.focus()
+      })
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement !== searchInput) {
+          e.preventDefault()
+          searchInput.focus()
+        } else if (e.key === 'Escape' && document.activeElement === searchInput) {
+          searchInput.value = ''
+          state.searchQuery = ''
+          applySearchFilter()
+          searchInput.blur()
+        }
+      })
     }
 
     function setupSSE() {
+      if (isStatic) {
+        statusBadge.classList.remove('disconnected')
+        statusBadge.classList.add('static')
+        statusBadge.querySelector('.status-text').textContent = 'Static Export'
+        return
+      }
+
       const sse = new EventSource('/events')
 
       sse.onopen = () => {
@@ -727,6 +883,11 @@
         <span class="status-dot"></span>
         <span class="status-text">Live Sync</span>
       </div>
+    </div>
+    <div class="search-box">
+      <input type="text" id="search-input" class="search-input" placeholder="Search files... (/)" autocomplete="off" />
+      <span id="search-meta" class="search-meta"></span>
+      <button id="search-clear" class="search-clear" title="Clear">✕</button>
     </div>
     <div class="controls">
       <button id="btn-layout" title="Toggle Layout">🌐 Radial</button>

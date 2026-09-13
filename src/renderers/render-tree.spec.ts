@@ -1,4 +1,5 @@
 import type { DependencyGraph } from '../types'
+import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -109,5 +110,121 @@ describe('renderTree', () => {
 
     const result = renderTree(entry, graph)
     expect(result).toContain('❌ Entry file not found: main.md')
+  })
+
+  it('should render directory trees when target is a directory', () => {
+    const tempDir = path.resolve('temp-tree-dir')
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true })
+    }
+
+    const file1 = path.join(tempDir, 'a.md')
+    const file2 = path.join(tempDir, 'b.md')
+
+    const graph: DependencyGraph = new Map([
+      [file1, { filePath: file1, exists: true, references: [file2] }],
+      [file2, { filePath: file2, exists: true, references: [] }],
+    ])
+
+    const result = renderTree(tempDir, graph)
+    expect(result).toContain('📁 temp-tree-dir')
+    expect(result).toContain('temp-tree-dir/a.md')
+    expect(result).toContain('temp-tree-dir/b.md')
+
+    fs.rmSync(tempDir, { recursive: true, force: true })
+  })
+
+  it('should render directory trees with exact structure, multiple roots, and multiple children', () => {
+    const tempDir = path.resolve('temp-tree-multi')
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true })
+    }
+
+    const root1 = path.join(tempDir, 'root1.md')
+    const root2 = path.join(tempDir, 'root2.md')
+    const child1 = path.join(tempDir, 'child1.md')
+    const child2 = path.join(tempDir, 'child2.md')
+
+    const graph: DependencyGraph = new Map([
+      [
+        root1,
+        {
+          filePath: root1,
+          exists: true,
+          references: [child1, child2],
+          links: [
+            { target: child1, resolvedPath: child1, raw: 'child1', line: 1, column: 1 },
+            { target: child2, resolvedPath: child2, raw: 'child2', line: 2, column: 1 },
+          ],
+        },
+      ],
+      [
+        root2,
+        {
+          filePath: root2,
+          exists: true,
+          references: [child1],
+          links: [
+            { target: child1, resolvedPath: child1, raw: 'child1', line: 1, column: 1 },
+          ],
+        },
+      ],
+      [child1, { filePath: child1, exists: true, references: [], links: [] }],
+      [child2, { filePath: child2, exists: true, references: [], links: [] }],
+    ])
+
+    const result = renderTree(tempDir, graph)
+    const root1Url = pathToFileURL(root1).href
+    const root2Url = pathToFileURL(root2).href
+    const child1Url = pathToFileURL(child1).href
+    const child2Url = pathToFileURL(child2).href
+
+    const expected = '📁 temp-tree-multi\n'
+      + `├── 📄 \u001B]8;;${root1Url}\u001B\\temp-tree-multi/root1.md\u001B]8;;\u001B\\\n`
+      + `│   ├── \u001B]8;;${child1Url}\u001B\\temp-tree-multi/child1.md\u001B]8;;\u001B\\\n`
+      + `│   └── \u001B]8;;${child2Url}\u001B\\temp-tree-multi/child2.md\u001B]8;;\u001B\\\n`
+      + `└── 📄 \u001B]8;;${root2Url}\u001B\\temp-tree-multi/root2.md\u001B]8;;\u001B\\\n`
+      + `    └── \u001B]8;;${child1Url}\u001B\\temp-tree-multi/child1.md\u001B]8;;\u001B\\\n`
+
+    expect(result).toBe(expected)
+
+    fs.rmSync(tempDir, { recursive: true, force: true })
+  })
+
+  it('should fallback to all existing graph nodes when there are no orphan roots in directory', () => {
+    const tempDir = path.resolve('temp-tree-cycle')
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true })
+    }
+
+    const fileA = path.join(tempDir, 'a.md')
+    const fileB = path.join(tempDir, 'b.md')
+    const missing = path.join(tempDir, 'missing.md')
+
+    // Cycle A <-> B (0 orphans), plus missing node in graph (exists: false)
+    const graph: DependencyGraph = new Map([
+      [fileA, { filePath: fileA, exists: true, references: [fileB] }],
+      [fileB, { filePath: fileB, exists: true, references: [fileA] }],
+      [missing, { filePath: missing, exists: false, references: [] }],
+    ])
+
+    const result = renderTree(tempDir, graph)
+    expect(result).toContain('📁 temp-tree-cycle')
+    expect(result).toContain('temp-tree-cycle/a.md')
+    expect(result).toContain('temp-tree-cycle/b.md')
+    expect(result).not.toContain('missing.md')
+
+    fs.rmSync(tempDir, { recursive: true, force: true })
+  })
+
+  it('should render . when directory is current working directory', () => {
+    const cwd = process.cwd()
+    const file1 = path.join(cwd, 'temp-cwd-test.md')
+    const graph: DependencyGraph = new Map([
+      [file1, { filePath: file1, exists: true, references: [] }],
+    ])
+
+    const result = renderTree('.', graph)
+    expect(result.startsWith('📁 .\n')).toBe(true)
   })
 })
