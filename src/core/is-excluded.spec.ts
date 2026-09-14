@@ -48,6 +48,7 @@ describe('isExcluded', () => {
     expect(isExcluded('/workspace/project/docs/sub/intro.md', rootDir, ['docs/*.md'])).toBe(false)
     expect(isExcluded('/workspace/project/docs/sub/intro.md', rootDir, ['docs/*/*.md'])).toBe(true)
     expect(isExcluded('/workspace/project/docs/sub/deep/intro.md', rootDir, ['docs/**/*.md'])).toBe(true)
+    expect(isExcluded('/workspace/project/docs/intro.md', rootDir, ['docs/**/*.md'])).toBe(true)
   })
 
   it('should safely handle patterns with regex metacharacters without throwing', () => {

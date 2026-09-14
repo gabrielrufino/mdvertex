@@ -1,15 +1,31 @@
 import path from 'node:path'
 
 function globToRegExp(pattern: string): RegExp {
-  const source = pattern
-    .split('**')
-    .map(part =>
-      part
-        .split('*')
-        .map(segment => segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-        .join('[^/]*'),
-    )
-    .join('.*')
+  const parts = pattern.split('**')
+  const regexParts = parts.map(part =>
+    part
+      .split('*')
+      .map(segment => segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('[^/]*'),
+  )
+
+  let source = regexParts[0]
+  for (let i = 1; i < regexParts.length; i++) {
+    const prev = source
+    const next = regexParts[i]
+    if (prev.endsWith('/') && next.startsWith('/')) {
+      source = `${prev.slice(0, -1)}(?:/|/.*/)${next.slice(1)}`
+    }
+    else if (prev === '' && next.startsWith('/')) {
+      source = `(?:.*/)?${next.slice(1)}`
+    }
+    else if (prev.endsWith('/') && next === '') {
+      source = `${prev.slice(0, -1)}(?:/.*)?`
+    }
+    else {
+      source = `${prev}.*${next}`
+    }
+  }
 
   return new RegExp(`^${source}$`)
 }

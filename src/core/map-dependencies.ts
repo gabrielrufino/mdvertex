@@ -54,7 +54,7 @@ export function mapDependencies(
             }
           }
 
-          if (!isExcluded(resolvedPath, rootDir, excludes)) {
+          if (link.isExternal || !isExcluded(resolvedPath, rootDir, excludes)) {
             links.push({
               ...link,
               resolvedPath,
