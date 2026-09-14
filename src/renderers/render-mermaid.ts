@@ -19,9 +19,38 @@ export function renderMermaid(entryPath: string, graph: DependencyGraph): string
   const nodes = Array.from(graph.values())
 
   for (const node of nodes) {
-    const id = getNodeId(node.filePath)
+    getNodeId(node.filePath)
+  }
+
+  const groups = new Map<string, typeof nodes>()
+  for (const node of nodes) {
     const relPath = getRelativePath(node.filePath)
-    output += `    ${id}["${relPath}"]\n`
+    const dir = path.dirname(relPath).replace(/\\/g, '/')
+    if (!groups.has(dir)) {
+      groups.set(dir, [])
+    }
+    groups.get(dir)!.push(node)
+  }
+
+  let subgraphCounter = 0
+  for (const [dir, groupNodes] of groups.entries()) {
+    if (dir === '.' || dir === '') {
+      for (const node of groupNodes) {
+        const id = getNodeId(node.filePath)
+        const relPath = getRelativePath(node.filePath)
+        output += `    ${id}["${relPath}"]\n`
+      }
+    }
+    else {
+      const subgraphId = `subgraph_${subgraphCounter++}`
+      output += `    subgraph ${subgraphId} ["${dir}"]\n`
+      for (const node of groupNodes) {
+        const id = getNodeId(node.filePath)
+        const relPath = getRelativePath(node.filePath)
+        output += `        ${id}["${relPath}"]\n`
+      }
+      output += '    end\n'
+    }
   }
 
   output += '\n'

@@ -7,7 +7,7 @@ BIN_DIR="${MDVERTEX_BIN_DIR:-$HOME/.local/bin}"
 TARGET_FILE="$INSTALL_DIR/mdvertex"
 BIN_FILE="$BIN_DIR/mdvertex"
 
-echo "📐 Installing / Updating mdvertex..."
+echo "📐 Installing mdvertex..."
 
 # Check Node.js prerequisite
 if ! command -v node >/dev/null 2>&1; then
@@ -41,7 +41,7 @@ mv "${TARGET_FILE}.tmp" "$TARGET_FILE"
 chmod +x "$TARGET_FILE"
 ln -sf "$TARGET_FILE" "$BIN_FILE"
 
-echo "✅ mdvertex was installed/updated successfully!"
+echo "✅ mdvertex was installed successfully!"
 
 # Check if BIN_DIR is in PATH
 case ":$PATH:" in

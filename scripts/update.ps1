@@ -1,4 +1,4 @@
-# install.ps1 - Installer / Updater script for mdvertex on Windows
+# update.ps1 - Updater script for mdvertex on Windows
 $ErrorActionPreference = "Stop"
 
 $repo = "gabrielrufino/mdvertex"
@@ -6,7 +6,7 @@ $installDir = if ($env:MDVERTEX_INSTALL_DIR) { $env:MDVERTEX_INSTALL_DIR } else 
 $binDir = if ($env:MDVERTEX_BIN_DIR) { $env:MDVERTEX_BIN_DIR } else { Join-Path $installDir "bin" }
 $targetScript = Join-Path $installDir "mdvertex.js"
 
-Write-Host "📐 Installing / Updating mdvertex..." -ForegroundColor Cyan
+Write-Host "🔄 Updating mdvertex..." -ForegroundColor Cyan
 
 # Check for Node.js
 $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
@@ -49,13 +49,18 @@ Move-Item -Path $tempFile -Destination $targetScript -Force
 
 # Create CMD wrapper
 $cmdWrapper = Join-Path $binDir "mdvertex.cmd"
-$cmdContent = "@ECHO off`r`nnode `"%~dp0..\mdvertex.js`" %*"
+if ($binDir -eq (Join-Path $installDir "bin")) {
+    $cmdContent = "@ECHO off`r`nnode `"%~dp0..\mdvertex.js`" %*"
+}
+else {
+    $cmdContent = "@ECHO off`r`nnode `"$targetScript`" %*"
+}
 Set-Content -Path $cmdWrapper -Value $cmdContent -Encoding ASCII
 
 # Create PowerShell wrapper
 $psWrapper = Join-Path $binDir "mdvertex.ps1"
-$psContent = "& node `"`$PSScriptRoot\..\mdvertex.js`" `$args"
-Set-Content -Path $psWrapper -Value $psContent -Encoding ASCII
+$psContent = "& node `"$targetScript`" `$args"
+[System.IO.File]::WriteAllText($psWrapper, $psContent, [System.Text.Encoding]::UTF8)
 
 # Check and update PATH
 $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
@@ -66,5 +71,4 @@ if ($userPath -split ";" -notcontains $binDir) {
     Write-Host "ℹ️  Added $binDir to user PATH." -ForegroundColor Gray
 }
 
-Write-Host "✅ mdvertex was installed/updated successfully!" -ForegroundColor Green
-Write-Host "Run 'mdvertex --help' to get started." -ForegroundColor Cyan
+Write-Host "✅ mdvertex was updated successfully!" -ForegroundColor Green

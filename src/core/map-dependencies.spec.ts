@@ -112,4 +112,80 @@ describe('mapDependencies and renderers', () => {
     expect(graph.has(path.resolve(testDir, 'about.md'))).toBe(true)
     expect(graph.get(path.resolve(testDir, 'main.md'))?.exists).toBe(true)
   })
+
+  it('should handle non-existent entry without .md fallback', () => {
+    const entry = path.join(testDir, 'completely-unknown-file')
+    const graph = mapDependencies(entry)
+
+    const resolved = path.resolve(entry)
+    expect(graph.has(resolved)).toBe(true)
+    expect(graph.get(resolved)?.exists).toBe(false)
+  })
+
+  it('should respect maxDepth option', () => {
+    // main (depth 0) -> about (depth 1) -> sub/nested (depth 2)
+    const entry = path.join(testDir, 'main.md')
+
+    const graphDepth0 = mapDependencies(entry, { maxDepth: 0 })
+    expect(graphDepth0.has(path.resolve(testDir, 'main.md'))).toBe(true)
+    expect(graphDepth0.has(path.resolve(testDir, 'about.md'))).toBe(false)
+
+    const graphDepth1 = mapDependencies(entry, { maxDepth: 1 })
+    expect(graphDepth1.has(path.resolve(testDir, 'main.md'))).toBe(true)
+    expect(graphDepth1.has(path.resolve(testDir, 'about.md'))).toBe(true)
+    expect(graphDepth1.has(path.resolve(testDir, 'sub/nested.md'))).toBe(false)
+  })
+
+  it('should respect default and custom excludes', () => {
+    const fileWithExcludes = path.join(testDir, 'excludes-test.md')
+    fs.writeFileSync(
+      fileWithExcludes,
+      'Links: [mod](node_modules/pkg.md), [git](.git/info.md), [dist](dist/bundle.md), [custom](ignored/file.md), [valid](contact.md).',
+    )
+
+    const graph = mapDependencies(fileWithExcludes, { exclude: ['ignored'] })
+    const node = graph.get(path.resolve(fileWithExcludes))
+
+    expect(node).toBeDefined()
+    expect(node?.references).toEqual([path.resolve(testDir, 'contact.md')])
+    // None of node_modules, .git, dist, or ignored are in links
+    expect(node?.links.some(l => l.resolvedPath.includes('node_modules'))).toBe(false)
+    expect(node?.links.some(l => l.resolvedPath.includes('.git'))).toBe(false)
+    expect(node?.links.some(l => l.resolvedPath.includes('dist'))).toBe(false)
+    expect(node?.links.some(l => l.resolvedPath.includes('ignored'))).toBe(false)
+  })
+
+  it('should handle external links and avoid duplicate references', () => {
+    const fileWithExt = path.join(testDir, 'ext-test.md')
+    fs.writeFileSync(
+      fileWithExt,
+      'Links: [about1](about.md), [about2](about.md), [google](https://google.com).',
+    )
+
+    const graph = mapDependencies(fileWithExt, { external: true })
+    const node = graph.get(path.resolve(fileWithExt))
+
+    expect(node).toBeDefined()
+    // References contains about.md exactly once and does not contain external URL
+    expect(node?.references).toEqual([path.resolve(testDir, 'about.md')])
+    // Links contains both about.md links and the external link
+    expect(node?.links).toHaveLength(3)
+    const extLink = node?.links.find(l => l.isExternal)
+    expect(extLink).toBeDefined()
+    expect(extLink?.resolvedPath).toBe('https://google.com')
+  })
+
+  it('should not exclude the entry path itself even if inside a default-excluded folder', () => {
+    const distDir = path.join(testDir, 'dist')
+    fs.mkdirSync(distDir, { recursive: true })
+    const distFile = path.join(distDir, 'bundle.md')
+    fs.writeFileSync(distFile, 'Links: [contact](../contact.md).')
+
+    const graph = mapDependencies(distFile)
+    const node = graph.get(path.resolve(distFile))
+
+    expect(node).toBeDefined()
+    expect(node?.exists).toBe(true)
+    expect(node?.references).toEqual([path.resolve(testDir, 'contact.md')])
+  })
 })

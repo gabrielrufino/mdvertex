@@ -5,7 +5,7 @@ This guide contains crucial repository-specific details to help subsequent agent
 ## 🛠️ Verification Commands
 Always run verification in this specific order before finishing tasks:
 1. **Lint/Format**: `npm run lint` (autofix via `npm run lint:fix`)
-2. **Build**: `npm run build` (runs `tsc`)
+2. **Build**: `npm run build` (runs `tsdown`)
 3. **Test**: `npm run test` (runs `vitest run`)
 
 ## 🎨 Style & Toolchain Quirks
