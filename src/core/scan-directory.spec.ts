@@ -100,4 +100,13 @@ describe('scanDirectory', () => {
     const result = scanDirectory(testDir, { exclude: ['ignored-folder'] })
     expect(result.graph.has(path.join(testDir, 'ignored-folder', 'hidden.md'))).toBe(false)
   })
+
+  it('should resolve @/ and @ path aliases relative to the vault root', () => {
+    const fileWithAlias = path.join(testDir, 'alias-test.md')
+    fs.writeFileSync(fileWithAlias, 'Links to [@/guide](@/guide) and [@guide](@guide) and HTML link <a href="@/guide">guide</a>.')
+    const result = scanDirectory(testDir)
+    const node = result.graph.get(fileWithAlias)
+    expect(node).toBeDefined()
+    expect(node?.references).toEqual([path.join(testDir, 'guide.md')])
+  })
 })
