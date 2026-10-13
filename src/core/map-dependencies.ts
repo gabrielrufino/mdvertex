@@ -43,7 +43,16 @@ export function mapDependencies(
         for (const link of rawLinks) {
           let resolvedPath = link.target
           if (!link.isExternal) {
-            const resolved = path.resolve(currentDir, link.target)
+            let resolved: string
+            if (link.target.startsWith('@/')) {
+              resolved = path.resolve(rootDir, link.target.slice(2))
+            }
+            else if (link.target.startsWith('@')) {
+              resolved = path.resolve(rootDir, link.target.slice(1))
+            }
+            else {
+              resolved = path.resolve(currentDir, link.target)
+            }
             resolvedPath = resolved
             if (!fs.existsSync(resolved)) {
               const fallback = [`${resolved}.md`, `${resolved}.markdown`]

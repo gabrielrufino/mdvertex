@@ -188,4 +188,15 @@ describe('mapDependencies and renderers', () => {
     expect(node?.exists).toBe(true)
     expect(node?.references).toEqual([path.resolve(testDir, 'contact.md')])
   })
+
+  it('should resolve @/ and @ path aliases relative to the rootDir', () => {
+    const fileWithAlias = path.join(testDir, 'alias-test.md')
+    fs.writeFileSync(fileWithAlias, 'Links to [@/contact](@/contact) and [@contact](@contact) and HTML link <a href="@/contact">contact</a>.')
+
+    const graph = mapDependencies(fileWithAlias)
+    const node = graph.get(path.resolve(fileWithAlias))
+
+    expect(node).toBeDefined()
+    expect(node?.references).toEqual([path.resolve(testDir, 'contact.md')])
+  })
 })

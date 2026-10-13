@@ -78,6 +78,41 @@ describe('parseLinks', () => {
     })
   })
 
+  it('should extract HTML links with exact line and column', () => {
+    const content = 'Line 1\nThis is a <a href="about.md">link</a> on line 2.\nAnd <a href=\'contact.md#section?query=1\'>another</a> on line 3.'
+    const result = parseLinks(content)
+
+    expect(result).toHaveLength(2)
+    expect(result[0]).toEqual({
+      raw: 'about.md',
+      target: 'about.md',
+      line: 2,
+      column: 11,
+      isExternal: false,
+    })
+    expect(result[1]).toEqual({
+      raw: 'contact.md#section?query=1',
+      target: 'contact.md',
+      line: 3,
+      column: 5,
+      isExternal: false,
+    })
+  })
+
+  it('should capture external HTML links when external option is true', () => {
+    const content = 'See <a href="https://google.com">Google</a>.'
+    const result = parseLinks(content, { external: true })
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toEqual({
+      raw: 'https://google.com',
+      target: 'https://google.com',
+      line: 1,
+      column: 5,
+      isExternal: true,
+    })
+  })
+
   it('should skip empty standard and wiki links or links containing only anchor/query/whitespace', () => {
     const content = '[empty]()\n[hash](#top)\n[query](?foo)\n[spaces](   )\n[[ ]]\n[[ | Alias]]\n[[#only-anchor]]\n[valid](valid.md)'
     const result = parseLinks(content)

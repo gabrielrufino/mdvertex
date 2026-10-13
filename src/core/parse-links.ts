@@ -39,11 +39,38 @@ function getPosition(offsets: number[], index: number): LinkPosition {
 export function parseLinks(content: string, options: ParseLinksOptions = {}): ParsedLink[] {
   const standardLinkRegex = /\[.*?\]\(([^)]+)\)/g
   const wikiLinkRegex = /\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]*)?\]\]/g
+  const htmlLinkRegex = /<a\s[^>]*href=["']([^"']+)["'][^>]*>/gi
 
   const offsets = computeLineOffsets(content)
   const items: Array<ParsedLink & { index: number }> = []
 
   for (const match of content.matchAll(standardLinkRegex)) {
+    const rawTarget = match[1].trim()
+    const isExternal = /^https?:\/\//i.test(rawTarget)
+
+    if (isExternal && !options.external) {
+      continue
+    }
+
+    const cleaned = isExternal ? rawTarget : rawTarget.split(/[?#]/)[0].trim()
+    if (!cleaned) {
+      continue
+    }
+
+    const index = match.index ?? 0
+    const pos = getPosition(offsets, index)
+
+    items.push({
+      raw: rawTarget,
+      target: cleaned,
+      line: pos.line,
+      column: pos.column,
+      isExternal,
+      index,
+    })
+  }
+
+  for (const match of content.matchAll(htmlLinkRegex)) {
     const rawTarget = match[1].trim()
     const isExternal = /^https?:\/\//i.test(rawTarget)
 
